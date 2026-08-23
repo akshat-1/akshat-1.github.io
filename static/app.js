@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v18.0
- * Pure Same-Origin Base64 Proxy & Multi-Page PDF Generator
+ * Production Manga Reader Engine v19.0
+ * Scroll Auto-Hide Reader Control Bar & Pure Same-Origin Base64 PDF Generator
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -33,6 +33,8 @@ const state = {
     useDataSaver: false,
     searchDebounceTimer: null
 };
+
+let lastScrollTop = 0;
 
 // DOM Elements
 const elements = {
@@ -133,7 +135,6 @@ function handleCoverFailover(img, mId, coverFile) {
 async function getBase64DataUrl(imageUrl) {
     if (!imageUrl) return null;
 
-    // 1. Try local same-origin proxy
     try {
         const pyRes = await fetch(`/api/proxy_image?url=${encodeURIComponent(imageUrl)}`);
         if (pyRes.ok) {
@@ -142,7 +143,6 @@ async function getBase64DataUrl(imageUrl) {
         }
     } catch (e) {}
 
-    // 2. Try direct blob fetch
     try {
         const res = await fetch(imageUrl);
         if (res.ok) {
@@ -278,13 +278,27 @@ function setupEventListeners() {
         });
     }
 
+    // Scroll Direction Listener: Auto-Hide Top Control Bar on Scroll Down, Reveal on Scroll Up
     window.addEventListener('scroll', () => {
-        if (state.currentView === 'reader' && elements.progressBar) {
-            const winScroll = document.documentElement.scrollTop || document.body.scrollTop;
-            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-            const scrolled = (height > 0) ? (winScroll / height) * 100 : 0;
-            elements.progressBar.style.width = scrolled + '%';
+        const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+        if (state.currentView === 'reader') {
+            const controls = document.querySelector('.reader-controls-sticky');
+            if (controls) {
+                if (currentScrollTop > lastScrollTop && currentScrollTop > 120) {
+                    controls.classList.add('scroll-hidden');
+                } else if (currentScrollTop < lastScrollTop) {
+                    controls.classList.remove('scroll-hidden');
+                }
+            }
+
+            if (elements.progressBar) {
+                const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const scrolled = (height > 0) ? (currentScrollTop / height) * 100 : 0;
+                elements.progressBar.style.width = scrolled + '%';
+            }
         }
+        lastScrollTop = Math.max(0, currentScrollTop);
     });
 }
 
@@ -330,6 +344,10 @@ function showView(viewName) {
         elements.progressBar.style.width = '0%';
     }
 
+    // Ensure control bar is visible when switching view
+    const controls = document.querySelector('.reader-controls-sticky');
+    if (controls) controls.classList.remove('scroll-hidden');
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -353,7 +371,7 @@ function shareMangaLink() {
     }
 }
 
-// Concurrently Fetch All Base64 Chapter Pages for PDF Generation (Guarantees ALL Pages in PDF)
+// Concurrently Fetch All Base64 Chapter Pages for PDF Generation
 async function downloadChapterPDF() {
     if (!state.readerPages || state.readerPages.length === 0) {
         showToast('No pages available to download.');
@@ -982,7 +1000,7 @@ async function loadChapter(index) {
 function renderPages() {
     const zoomStyle = `style="max-width: ${state.zoomLevel}%; margin: 0 auto 14px auto;"`;
     elements.readerPagesContainer.innerHTML = state.readerPages.map((page, i) => `
-        <img src="${page.primary}" class="reader-image" ${zoomStyle} alt="Page ${i + 1}" loading="lazy" referrerpolicy="no-referrer" onerror="handleImageFailover(this, '${page.secondary}', '${page.backup}')">
+        <img src="${page.primary}" class="reader-image" ${zoomStyle} alt="Page ${i + 1}" referrerpolicy="no-referrer" onerror="handleImageFailover(this, '${page.secondary}', '${page.backup}')">
     `).join('');
 }
 
