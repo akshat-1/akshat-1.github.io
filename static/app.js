@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v22.0
- * Multi-Batch Offset Chapter Pagination & Interactive Chapter Range Selector
+ * Production Manga Reader Engine v23.0
+ * Read More Full Description Toggle & Multi-Batch 1100+ Chapter Range Pills
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -36,7 +36,10 @@ const state = {
     zoomLevel: 100,
     readerPages: [],
     useDataSaver: false,
-    searchDebounceTimer: null
+    searchDebounceTimer: null,
+    fullDescription: '',
+    shortDescription: '',
+    isDescExpanded: false
 };
 
 let lastScrollTop = 0;
@@ -115,6 +118,21 @@ function getMangaDescription(attr) {
     return 'No description available for this title.';
 }
 
+function toggleDescription() {
+    const descSpan = document.getElementById('desc-text');
+    const btn = document.getElementById('read-more-btn');
+    if (!descSpan || !btn) return;
+
+    state.isDescExpanded = !state.isDescExpanded;
+    if (state.isDescExpanded) {
+        descSpan.textContent = state.fullDescription;
+        btn.textContent = 'Read Less';
+    } else {
+        descSpan.textContent = state.shortDescription;
+        btn.textContent = 'Read More';
+    }
+}
+
 function getCoverUrl(manga, size = '256') {
     if (!manga) return 'https://via.placeholder.com/200x300?text=No+Cover';
     const mId = manga.id;
@@ -138,7 +156,7 @@ function handleCoverFailover(img, mId, coverFile) {
     }
 }
 
-// Convert Image URL to Base64 Data URL
+// Convert Image URL to Base64 Data URL (Proxy Fallback + Direct Blob)
 async function getBase64DataUrl(imageUrl) {
     if (!imageUrl) return null;
 
@@ -380,7 +398,7 @@ function shareMangaLink() {
     }
 }
 
-// Download Chapter as PDF
+// Concurrently Fetch All Base64 Chapter Pages for PDF Generation
 async function downloadChapterPDF() {
     if (!state.readerPages || state.readerPages.length === 0) {
         showToast('No pages available to download.');
@@ -744,6 +762,7 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
     const trimmed = mangaIdOrQuery.trim();
     const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed);
 
+    // 1. Try Direct UUID fetch
     if (isUuid) {
         try {
             const res = await fetch(`${API_BASE}/manga/${trimmed}?includes%5B%5D=cover_art`);
@@ -764,6 +783,7 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
         } catch (e) {}
     }
 
+    // 2. Title Search resolution
     try {
         const searchRes = await fetch(`${API_BASE}/manga?title=${encodeURIComponent(trimmed)}&limit=5&includes%5B%5D=cover_art`);
         const searchData = await searchRes.json();
@@ -790,7 +810,7 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
     showToast('Unable to load details for selected title.');
 }
 
-// Multi-Batch Paginated Chapter Resolver
+// Multi-Batch Paginated Chapter Resolver (Full 1100+ Chapter Coverage)
 async function loadMangaDetails(manga) {
     if (!manga) return;
     state.currentManga = manga;
@@ -803,8 +823,18 @@ async function loadMangaDetails(manga) {
     elements.detailTitle.textContent = title;
     elements.detailStatus.textContent = `Status: ${attr.status || 'Unknown'} | Year: ${attr.year || 'N/A'}`;
     
-    const desc = getMangaDescription(attr);
-    elements.detailDescription.textContent = desc.length > 350 ? desc.slice(0, 350) + '...' : desc;
+    // Read More / Read Less Full Description Resolver
+    state.fullDescription = getMangaDescription(attr);
+    if (state.fullDescription.length > 300) {
+        state.shortDescription = state.fullDescription.slice(0, 300) + '...';
+        state.isDescExpanded = false;
+        elements.detailDescription.innerHTML = `
+            <span id="desc-text">${escapeHtml(state.shortDescription)}</span>
+            <button class="btn btn-link btn-sm text-danger p-0 ms-1 fw-bold align-baseline" id="read-more-btn" onclick="toggleDescription()">Read More</button>
+        `;
+    } else {
+        elements.detailDescription.textContent = state.fullDescription;
+    }
 
     elements.detailTags.innerHTML = (attr.tags || []).slice(0, 6).map(t => 
         `<span class="badge bg-danger me-1 mb-1 opacity-75">${t.attributes ? t.attributes.name.en : 'Tag'}</span>`
@@ -819,8 +849,8 @@ async function loadMangaDetails(manga) {
         let allFeedChapters = [];
         let offset = 0;
 
-        // Loop offset pagination to fetch all chapter batches (up to 2000 items)
-        for (let i = 0; i < 4; i++) {
+        // Loop offset pagination until all feed chapters are fetched (up to 5000 items)
+        for (let i = 0; i < 10; i++) {
             const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&offset=${offset}&order%5Bchapter%5D=asc`;
             const res = await fetch(feedUrl);
             const data = await res.json();
@@ -866,11 +896,12 @@ async function loadMangaDetails(manga) {
     }
 }
 
-// Chapter Range Selector Pills Generator
+// Interactive Chapter Range Selector Pills Generator (Ch 1-100, 101-200... 1100-1200)
 function renderChapterRangePills(totalChapters) {
+    elements.chapterRangePills = document.getElementById('chapter-range-pills');
     if (!elements.chapterRangePills) return;
 
-    if (totalChapters.length <= 50) {
+    if (totalChapters.length <= 30) {
         elements.chapterRangePills.style.display = 'none';
         return;
     }
@@ -878,7 +909,7 @@ function renderChapterRangePills(totalChapters) {
     let maxNum = 0;
     totalChapters.forEach(c => {
         const num = parseFloat(c.attributes.chapter) || 0;
-        if (num > maxNum) maxNum = num;
+        if (num > maxNum && num < 99999) maxNum = num;
     });
 
     const rangePills = [{ label: `All (${totalChapters.length})`, min: 0, max: 999999 }];
@@ -980,7 +1011,7 @@ async function loadRelatedSeries(currentTitle) {
 
 function renderChapterList() {
     if (!state.currentChapterList || state.currentChapterList.length === 0) {
-        elements.chapterList.innerHTML = `<div class="text-center text-muted py-3">No chapters available.</div>`;
+        elements.chapterList.innerHTML = `<div class="text-center text-muted py-3">No chapters available in selected range.</div>`;
         return;
     }
 

@@ -260,8 +260,8 @@ def get_chapters(manga_id_or_url: str):
         data = []
         offset = 0
 
-        # Paginate offset up to 2000 items (4 x 500 batch requests)
-        for _ in range(4):
+        # Paginate offset up to 5000 items (10 x 500 batch requests)
+        for _ in range(10):
             params = {
                 "limit": 500,
                 "offset": offset,
