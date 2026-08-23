@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v20.0
- * Latest Releases Grid & Expanded Genre Tags Resolver
+ * Production Manga Reader Engine v21.0
+ * Robust Latest Releases Loader & Multi-Source Category Engine
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -472,7 +472,7 @@ async function loadAllHomeGrids() {
     renderSkeletons(elements.romanceGrid, 6);
 
     await Promise.all([
-        loadLatestGrid(),
+        loadLatestGrid(elements.latestGrid),
         loadTrendingGrid(),
         loadCategoryGrid('action', elements.actionGrid),
         loadCategoryGrid('adventure', elements.adventureGrid),
@@ -481,16 +481,29 @@ async function loadAllHomeGrids() {
     ]);
 }
 
-async function loadLatestGrid() {
-    if (!elements.latestGrid) return;
+async function loadLatestGrid(container = elements.latestGrid) {
+    if (!container) return;
     try {
         const url = `${API_BASE}/manga?limit=12&includes%5B%5D=cover_art&order%5BlatestUploadedChapter%5D=desc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.data && data.data.length > 0) {
-            renderMangaCards(elements.latestGrid, data.data);
+            renderMangaCards(container, data.data);
+            return;
         }
     } catch (e) {}
+
+    // Fallback to Python server API if client fetch yields 0 items or throws error
+    try {
+        const pyRes = await fetch('/api/category/latest');
+        const pyData = await pyRes.json();
+        if (pyData.titles && pyData.titles.length > 0) {
+            renderFallbackSearchCards(container, pyData);
+            return;
+        }
+    } catch (e) {}
+
+    container.innerHTML = `<div class="col-12 text-muted small py-3">Latest items updating...</div>`;
 }
 
 async function loadTrendingGrid() {
@@ -524,7 +537,7 @@ async function loadCategoryGrid(genreKey, container) {
     if (!container) return;
     
     if (genreKey === 'latest') {
-        loadLatestGrid();
+        loadLatestGrid(container);
         return;
     }
 
@@ -679,22 +692,11 @@ async function filterByGenre(genreKey, btnElement) {
     showView('home');
 
     if (genreKey === 'latest') {
-        loadLatestGridIntoContainer(elements.searchResultsGrid);
+        loadLatestGrid(elements.searchResultsGrid);
         return;
     }
 
     loadCategoryGrid(genreKey, elements.searchResultsGrid);
-}
-
-async function loadLatestGridIntoContainer(container) {
-    try {
-        const url = `${API_BASE}/manga?limit=24&includes%5B%5D=cover_art&order%5BlatestUploadedChapter%5D=desc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.data && data.data.length > 0) {
-            renderMangaCards(container, data.data);
-        }
-    } catch (e) {}
 }
 
 function renderMangaCards(container, mangaList) {
