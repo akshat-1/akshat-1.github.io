@@ -121,7 +121,7 @@ def get_search_result(query_or_url: str):
                 )
                 if f_res.status_code == 200:
                     chaps = f_res.json().get("data", [])
-                    readable_count = len([c for c in chaps if c.get("attributes", {}).get("pages", 0) > 0])
+                    readable_count = len([c for c in chaps if c.get("attributes", {}).get("pages", 0) > 2])
             except Exception:
                 readable_count = 1
 
@@ -196,7 +196,7 @@ def get_category_manga(genre_key: str):
 
 def get_chapters(manga_id_or_url: str):
     """
-    Fetch readable chapter list sorted numerically (Chapter 1, 2, 3... 14) with multi-language fallback.
+    Fetch readable chapter list sorted numerically (Chapter 1, 2, 3... 14) with real page filtering (pages > 2).
     Returns: (list_of_chapter_ids, list_of_chapter_titles)
     """
     links = []
@@ -215,7 +215,10 @@ def get_chapters(manga_id_or_url: str):
         res = requests.get(url, params=params, headers=HEADERS, timeout=10)
         data = res.json().get("data", []) if res.status_code == 200 else []
 
-        readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
+        # Filter chapters with pages > 2 (removes 1-page/2-page MangaDex notice entries)
+        readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 2]
+        if not readable:
+            readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
         if not readable:
             readable = data
 

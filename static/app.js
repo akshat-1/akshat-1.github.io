@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v14.0
- * Pure Base64 Data URL PDF Generator & Clean Reader Navigation
+ * Production Manga Reader Engine v15.0
+ * Real Multi-Page Chapter Filter & Proportional PDF Downloader
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -129,7 +129,7 @@ function handleCoverFailover(img, mId, coverFile) {
     }
 }
 
-// Convert Image URL to Base64 Data URL (Fixes HTML5 Canvas Taint DOMException)
+// Convert Image URL to Base64 Data URL (Fixes Canvas Taint DOMException)
 async function imageUrlToBase64(url) {
     try {
         const response = await fetch(url);
@@ -319,7 +319,7 @@ function showView(viewName) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Share Manga Functionality
+// Share Manga Link
 function shareMangaLink() {
     if (!state.currentManga) return;
     const attr = state.currentManga.attributes || {};
@@ -339,7 +339,7 @@ function shareMangaLink() {
     }
 }
 
-// Download Chapter as PDF Functionality (FileReader Base64 Conversion)
+// Proportional PDF Chapter Downloader (jsPDF Base64 + Aspect Ratio Scaling)
 async function downloadChapterPDF() {
     if (!state.readerPages || state.readerPages.length === 0) {
         showToast('No pages available to download.');
@@ -370,7 +370,30 @@ async function downloadChapterPDF() {
             const base64Data = await imageUrlToBase64(imgUrl);
             if (base64Data) {
                 if (addedPages > 0) pdf.addPage();
-                pdf.addImage(base64Data, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+                // Calculate Proportional Aspect Ratio Scaling
+                const tempImg = new Image();
+                tempImg.src = base64Data;
+                await tempImg.decode().catch(() => {});
+
+                const imgW = tempImg.naturalWidth || 600;
+                const imgH = tempImg.naturalHeight || 800;
+                const imgRatio = imgW / imgH;
+                const pdfRatio = pdfWidth / pdfHeight;
+
+                let renderW, renderH;
+                if (imgRatio > pdfRatio) {
+                    renderW = pdfWidth;
+                    renderH = pdfWidth / imgRatio;
+                } else {
+                    renderH = pdfHeight;
+                    renderW = pdfHeight * imgRatio;
+                }
+
+                const xOffset = (pdfWidth - renderW) / 2;
+                const yOffset = (pdfHeight - renderH) / 2;
+
+                pdf.addImage(base64Data, 'JPEG', xOffset, yOffset, renderW, renderH);
                 addedPages++;
             }
         }
@@ -705,8 +728,10 @@ async function loadMangaDetails(manga) {
         const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&order%5Bchapter%5D=asc`;
         const res = await fetch(feedUrl);
         const data = await res.json();
-        let readable = (data.data || []).filter(c => (c.attributes.pages || 0) > 0);
-
+        
+        // Filter chapters with pages > 2 (removes 1-page/2-page MangaDex notice entries)
+        let readable = (data.data || []).filter(c => (c.attributes.pages || 0) > 2);
+        if (readable.length === 0) readable = (data.data || []).filter(c => (c.attributes.pages || 0) > 0);
         if (readable.length === 0) readable = data.data || [];
 
         if (readable.length > 0) {
