@@ -859,7 +859,7 @@ async function loadMangaDetails(manga) {
         let offset = 0;
         let total = 1;
 
-        // Loop offset pagination until ALL feed chapters are fetched (up to 20 x 500 = 10,000 items)
+        // 1. Fetch primary manga feed chapters (up to 20 x 500 = 10,000 items)
         for (let i = 0; i < 20; i++) {
             const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&offset=${offset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
             const res = await fetch(feedUrl);
@@ -872,10 +872,36 @@ async function loadMangaDetails(manga) {
             if (offset >= total || batch.length < 500) break;
         }
 
+        // 2. Multi-Edition Feed Merge: Fetch alternate edition feeds (e.g. Official Colored, main series)
+        try {
+            const cleanTitle = title.split(/[:\-(]/)[0].trim();
+            const relUrl = `${API_BASE}/manga?title=${encodeURIComponent(cleanTitle)}%20Colored&limit=5&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
+            const relRes = await fetch(relUrl);
+            const relData = await relRes.json();
+            const altList = (relData.data || []).filter(m => m.id !== mId);
+
+            for (const altManga of altList.slice(0, 2)) {
+                let altOffset = 0;
+                for (let i = 0; i < 10; i++) {
+                    const altFeedUrl = `${API_BASE}/manga/${altManga.id}/feed?limit=500&offset=${altOffset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
+                    const aRes = await fetch(altFeedUrl);
+                    const aData = await aRes.json();
+                    const aBatch = aData.data || [];
+                    if (aBatch.length === 0) break;
+                    allFeedChapters = allFeedChapters.concat(aBatch);
+                    altOffset += aBatch.length;
+                    if (altOffset >= (aData.total || 0) || aBatch.length < 500) break;
+                }
+            }
+        } catch (e) {
+            console.warn('Alt feed fetch optional hiccup:', e);
+        }
+
         state.rawFeedChapters = allFeedChapters;
 
         if (allFeedChapters.length > 0) {
             populateLanguageDropdown(allFeedChapters);
+            renderLanguagePills(allFeedChapters);
             processAndRenderChapters();
         } else {
             await loadFallbackChapters(mId, title);
@@ -884,6 +910,110 @@ async function loadMangaDetails(manga) {
         console.error('Failed to load chapters:', err);
         await loadFallbackChapters(mId, title);
     }
+}
+
+// Render Language Selector Tab Bar pills
+function renderLanguagePills(rawChapters) {
+    const box = document.getElementById('language-box');
+    const pillsContainer = document.getElementById('language-pills');
+    if (!box || !pillsContainer) return;
+
+    if (!rawChapters || rawChapters.length === 0) {
+        box.style.display = 'none';
+        return;
+    }
+
+    const LANG_NAMES = {
+        en: 'English 🇬🇧',
+        es: 'Spanish 🇪🇸',
+        'es-la': 'Spanish (LATAM) 🇲🇽',
+        'pt-br': 'Portuguese (BR) 🇧🇷',
+        pt: 'Portuguese 🇵🇹',
+        ja: 'Japanese 🇯🇵',
+        fr: 'French 🇫🇷',
+        de: 'German 🇩🇪',
+        it: 'Italian 🇮🇹',
+        ru: 'Russian 🇷🇺',
+        vi: 'Vietnamese 🇻🇳',
+        id: 'Indonesian 🇮🇩',
+        th: 'Thai 🇹🇭',
+        ar: 'Arabic 🇸🇦',
+        ca: 'Catalan 🏴',
+        el: 'Greek 🇬🇷',
+        he: 'Hebrew 🇮🇱',
+        pl: 'Polish 🇵🇱',
+        tr: 'Turkish 🇹🇷',
+        hi: 'Hindi 🇮🇳',
+        ko: 'Korean 🇰🇷',
+        zh: 'Chinese 🇨🇳',
+        'zh-hk': 'Chinese (HK) 🇭🇰',
+        uk: 'Ukrainian 🇺🇦',
+        hu: 'Hungarian 🇭🇺',
+        az: 'Azerbaijani 🇦🇿',
+        kk: 'Kazakh 🇰🇿',
+        ro: 'Romanian 🇷🇴'
+    };
+
+    const langCounts = new Map();
+    rawChapters.forEach(ch => {
+        const lang = (ch.attributes && ch.attributes.translatedLanguage || 'en').toLowerCase();
+        langCounts.set(lang, (langCounts.get(lang) || 0) + 1);
+    });
+
+    const activeLang = state.selectedLanguage || (langCounts.has('en') ? 'en' : 'all');
+    state.selectedLanguage = activeLang;
+
+    const tabList = [];
+    
+    // Sort languages: EN first if present, then count descending
+    const sortedLangs = Array.from(langCounts.keys()).sort((a, b) => {
+        if (a === 'en') return -1;
+        if (b === 'en') return 1;
+        return langCounts.get(b) - langCounts.get(a);
+    });
+
+    sortedLangs.forEach(lang => {
+        const name = LANG_NAMES[lang] || lang.toUpperCase();
+        tabList.push({
+            id: lang,
+            label: `${name} (${langCounts.get(lang)})`
+        });
+    });
+
+    if (tabList.length > 1) {
+        tabList.push({
+            id: 'all',
+            label: `🌐 All Languages (${rawChapters.length})`
+        });
+    }
+
+    pillsContainer.innerHTML = tabList.map(t => `
+        <button class="genre-pill ${t.id === activeLang ? 'active' : ''}" onclick="selectLanguageTab('${t.id}', this)">
+            ${t.label}
+        </button>
+    `).join('');
+
+    box.style.display = 'block';
+
+    if (elements.chapterLangSelect) {
+        elements.chapterLangSelect.value = activeLang;
+    }
+}
+
+function selectLanguageTab(langCode, btnElement) {
+    if (btnElement && document.getElementById('language-pills')) {
+        const buttons = document.getElementById('language-pills').querySelectorAll('.genre-pill');
+        buttons.forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+    }
+
+    state.selectedLanguage = langCode;
+
+    if (elements.chapterLangSelect) {
+        elements.chapterLangSelect.value = langCode;
+    }
+
+    processAndRenderChapters();
 }
 
 // Dynamically populate language options based on languages present in raw chapters feed
