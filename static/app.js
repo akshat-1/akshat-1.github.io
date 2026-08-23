@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v10.0
- * Chapter Feed URL Encoding & Multi-Tier Trending/Chapter Fallbacks
+ * Production Manga Reader Engine v11.0
+ * 2-Tier Chapter Image Failover Resolver
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -282,7 +282,7 @@ function showView(viewName) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Load Home Grids with Fallback
+// Load Home Grids
 async function loadAllHomeGrids() {
     renderSkeletons(elements.trendingGrid, 12);
     renderSkeletons(elements.actionGrid, 6);
@@ -290,7 +290,6 @@ async function loadAllHomeGrids() {
     renderSkeletons(elements.fantasyGrid, 6);
     renderSkeletons(elements.romanceGrid, 6);
 
-    // 1. Trending
     try {
         const url = `${API_BASE}/manga?limit=18&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const res = await fetch(url);
@@ -305,13 +304,9 @@ async function loadAllHomeGrids() {
         loadTrendingFallback();
     }
 
-    // 2. Action
     loadCategoryGrid('action', elements.actionGrid);
-    // 3. Adventure
     loadCategoryGrid('adventure', elements.adventureGrid);
-    // 4. Fantasy
     loadCategoryGrid('fantasy', elements.fantasyGrid);
-    // 5. Romance
     loadCategoryGrid('romance', elements.romanceGrid);
 }
 
@@ -363,7 +358,7 @@ function renderHeroBanner(manga) {
     elements.heroStartBtn.onclick = () => loadMangaDetails(manga);
 }
 
-// Search Engine with Encoding & Fallback
+// Search Engine
 async function performSearch(query) {
     elements.searchSection.style.display = 'block';
     elements.searchTitle.textContent = `Search Results for "${query}"`;
@@ -629,12 +624,10 @@ async function loadMangaDetails(manga) {
             state.currentChapterList = filtered;
             renderChapterList();
         } else {
-            // Fallback: load chapters from Python server API
             await loadFallbackChapters(mId, title);
         }
     } catch (err) {
         console.error('Failed to load chapters:', err);
-        // Retry via Python server API fallback
         await loadFallbackChapters(mId, title);
     }
 }
@@ -747,7 +740,7 @@ function filterChapterList() {
     });
 }
 
-// Load Reader View with Canonical Storage Engine
+// Load Reader View with 2-Tier Image Resolver (Client @at-home + Flask /api/images/<id>)
 async function loadChapter(index) {
     if (index < 0 || index >= state.currentChapterList.length) return;
     
@@ -772,45 +765,62 @@ async function loadChapter(index) {
 
     saveToHistory(state.currentManga.id, mangaTitle, chapter.id, chNum);
 
+    let resolvedPages = [];
+
+    // 1. Try Direct client-side fetch from MangaDex @at-home API
     try {
         const res = await fetch(`${API_BASE}/at-home/server/${chapter.id}`);
-        const data = await res.json();
+        if (res.ok) {
+            const data = await res.json();
+            if (data.chapter && data.chapter.hash) {
+                const baseUrl = data.baseUrl || 'https://uploads.mangadex.org';
+                const hash = data.chapter.hash;
+                const filenames = state.useDataSaver ? (data.chapter.dataSaver || data.chapter.data) : (data.chapter.data || data.chapter.dataSaver);
+                const saverFilenames = data.chapter.dataSaver || data.chapter.data;
 
-        if (data.chapter && data.chapter.hash) {
-            const baseUrl = data.baseUrl || 'https://uploads.mangadex.org';
-            const hash = data.chapter.hash;
-            const filenames = state.useDataSaver ? (data.chapter.dataSaver || data.chapter.data) : (data.chapter.data || data.chapter.dataSaver);
-            const saverFilenames = data.chapter.dataSaver || data.chapter.data;
-
-            state.readerPages = (filenames || []).map((f, i) => ({
-                primary: `${UPLOADS_BASE}/${hash}/${f}`,
-                secondary: `${UPLOADS_SAVER_BASE}/${hash}/${saverFilenames[i] || f}`,
-                backup: `${baseUrl}/data/${hash}/${f}`
-            }));
-
-            if (state.readerPages.length > 0) {
-                elements.pageCounter.textContent = `Total Pages: ${state.readerPages.length}`;
-                renderPages();
-            } else {
-                elements.readerPagesContainer.innerHTML = `<div class="text-center text-muted py-5">Chapter image data unavailable.</div>`;
+                resolvedPages = (filenames || []).map((f, i) => ({
+                    primary: `${UPLOADS_BASE}/${hash}/${f}`,
+                    secondary: `${UPLOADS_SAVER_BASE}/${hash}/${saverFilenames[i] || f}`,
+                    backup: `${baseUrl}/data/${hash}/${f}`
+                }));
             }
-        } else {
-            try {
-                const pyImgRes = await fetch(`/api/images/${chapter.id}`);
-                const pyImgData = await pyImgRes.json();
-                if (pyImgData.pages && pyImgData.pages.length > 0) {
-                    state.readerPages = pyImgData.pages.map(url => ({ primary: url, secondary: url, backup: url }));
-                    elements.pageCounter.textContent = `Total Pages: ${state.readerPages.length}`;
-                    renderPages();
-                    return;
-                }
-            } catch (e) {}
-
-            elements.readerPagesContainer.innerHTML = `<div class="text-center text-muted py-5">Unable to connect to image storage server.</div>`;
         }
     } catch (err) {
-        console.error('Failed to load chapter pages:', err);
-        elements.readerPagesContainer.innerHTML = `<div class="text-center text-danger py-5">Network error fetching chapter pages. Click retry below.</div>`;
+        console.error('Client @at-home fetch hiccup:', err);
+    }
+
+    // 2. Try Fallback to Python server API if direct fetch produced 0 pages
+    if (resolvedPages.length === 0) {
+        try {
+            const pyImgRes = await fetch(`/api/images/${chapter.id}`);
+            if (pyImgRes.ok) {
+                const pyImgData = await pyImgRes.json();
+                if (pyImgData.pages && pyImgData.pages.length > 0) {
+                    resolvedPages = pyImgData.pages.map(url => ({
+                        primary: url,
+                        secondary: url.replace('/data/', '/data-saver/'),
+                        backup: url
+                    }));
+                }
+            }
+        } catch (e) {
+            console.error('Fallback image API error:', e);
+        }
+    }
+
+    if (resolvedPages.length > 0) {
+        state.readerPages = resolvedPages;
+        elements.pageCounter.textContent = `Total Pages: ${state.readerPages.length}`;
+        renderPages();
+    } else {
+        elements.readerPagesContainer.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <p class="mb-3">Unable to retrieve chapter pages from CDN.</p>
+                <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="loadChapter(${index})">
+                    <i class="fa-solid fa-rotate-right me-1"></i> Retry Loading Chapter
+                </button>
+            </div>
+        `;
     }
 }
 
