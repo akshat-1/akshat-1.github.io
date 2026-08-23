@@ -20,8 +20,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <!-- jsPDF Engine for 1-Click Chapter PDF Downloads -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Custom CSS (v23.0 Cache-Busted) -->
-    <link rel="stylesheet" href="static/app.css?v=23.0">
+    <!-- Custom CSS (v24.0 Cache-Busted) -->
+    <link rel="stylesheet" href="static/app.css?v=24.0">
 </head>
 <body>
 
@@ -186,7 +186,13 @@
                         </button>
                     </div>
                 </div>
-                <div class="genre-pills mb-3" id="chapter-range-pills" style="display: none;"></div>
+
+                <!-- Prominent Chapter Range Selector Box -->
+                <div class="chapter-range-box" id="chapter-range-box" style="display: none;">
+                    <div class="chapter-range-label"><i class="fa-solid fa-filter me-1 text-danger"></i> Select Chapter Range:</div>
+                    <div class="genre-pills" id="chapter-range-pills"></div>
+                </div>
+
                 <div id="chapter-list"></div>
             </div>
         </section>
@@ -275,7 +281,7 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
-    <!-- Application JS (v23.0 Cache-Busted) -->
-    <script src="static/app.js?v=23.0"></script>
+    <!-- Application JS (v24.0 Cache-Busted) -->
+    <script src="static/app.js?v=24.0"></script>
 </body>
 </html>

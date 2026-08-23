@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v23.0
- * Read More Full Description Toggle & Multi-Batch 1100+ Chapter Range Pills
+ * Production Manga Reader Engine v24.0
+ * Prominent Chapter Range Selector Box & Default 100-Chapter Chunk Filter
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -82,6 +82,7 @@ const elements = {
     relatedSection: document.getElementById('related-section'),
     relatedGrid: document.getElementById('related-grid'),
     chapterList: document.getElementById('chapter-list'),
+    chapterRangeBox: document.getElementById('chapter-range-box'),
     chapterRangePills: document.getElementById('chapter-range-pills'),
     chapterSearch: document.getElementById('chapter-search'),
     chapterLangSelect: document.getElementById('chapter-lang-select'),
@@ -398,7 +399,7 @@ function shareMangaLink() {
     }
 }
 
-// Concurrently Fetch All Base64 Chapter Pages for PDF Generation
+// Download Chapter as PDF
 async function downloadChapterPDF() {
     if (!state.readerPages || state.readerPages.length === 0) {
         showToast('No pages available to download.');
@@ -883,7 +884,19 @@ async function loadMangaDetails(manga) {
             });
 
             state.allChapterList = filtered;
-            state.currentChapterList = filtered;
+
+            // Default to Ch 1-100 chunk for long manga (>50 chaps) so 1000+ chapters aren't all dumped at once
+            if (filtered.length > 50) {
+                state.currentChapterList = filtered.filter(c => {
+                    const num = parseFloat(c.attributes.chapter) || 0;
+                    return num >= 1 && num <= 100;
+                });
+                if (state.currentChapterList.length === 0) {
+                    state.currentChapterList = filtered.slice(0, 100);
+                }
+            } else {
+                state.currentChapterList = filtered;
+            }
 
             renderChapterRangePills(filtered);
             renderChapterList();
@@ -896,13 +909,15 @@ async function loadMangaDetails(manga) {
     }
 }
 
-// Interactive Chapter Range Selector Pills Generator (Ch 1-100, 101-200... 1100-1200)
+// Interactive Chapter Range Selector Box Generator (Ch 1-100, 101-200... 1100-1200)
 function renderChapterRangePills(totalChapters) {
+    elements.chapterRangeBox = document.getElementById('chapter-range-box');
     elements.chapterRangePills = document.getElementById('chapter-range-pills');
-    if (!elements.chapterRangePills) return;
+
+    if (!elements.chapterRangeBox || !elements.chapterRangePills) return;
 
     if (totalChapters.length <= 30) {
-        elements.chapterRangePills.style.display = 'none';
+        elements.chapterRangeBox.style.display = 'none';
         return;
     }
 
@@ -912,7 +927,7 @@ function renderChapterRangePills(totalChapters) {
         if (num > maxNum && num < 99999) maxNum = num;
     });
 
-    const rangePills = [{ label: `All (${totalChapters.length})`, min: 0, max: 999999 }];
+    const rangePills = [];
     const step = 100;
     
     for (let start = 1; start <= maxNum; start += step) {
@@ -924,12 +939,15 @@ function renderChapterRangePills(totalChapters) {
         });
     }
 
+    rangePills.push({ label: `Show All (${totalChapters.length})`, min: 0, max: 999999 });
+
     elements.chapterRangePills.innerHTML = rangePills.map((r, idx) => `
         <button class="genre-pill ${idx === 0 ? 'active' : ''}" onclick="filterChapterRange(${r.min}, ${r.max}, this)">
             ${r.label}
         </button>
     `).join('');
-    elements.chapterRangePills.style.display = 'flex';
+
+    elements.chapterRangeBox.style.display = 'block';
 }
 
 function filterChapterRange(minNum, maxNum, btnElement) {
@@ -944,6 +962,11 @@ function filterChapterRange(minNum, maxNum, btnElement) {
             const num = parseFloat(c.attributes.chapter) || 0;
             return num >= minNum && num <= maxNum;
         });
+
+        // Fallback to slice if chapter numbers aren't numeric float strings
+        if (state.currentChapterList.length === 0) {
+            state.currentChapterList = state.allChapterList.slice(minNum - 1, maxNum);
+        }
     }
 
     renderChapterList();

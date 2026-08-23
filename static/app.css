@@ -1,4 +1,4 @@
-/* Cyber Obsidian Manga Reader Theme v5.0 */
+/* Cyber Obsidian Manga Reader Theme v6.0 */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
@@ -195,6 +195,26 @@ body {
     color: #fff;
     border-color: var(--accent);
     box-shadow: 0 6px 20px var(--accent-glow);
+}
+
+/* Chapter Range Selector Box */
+.chapter-range-box {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.chapter-range-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
 }
 
 /* Manga Cards Grid */
