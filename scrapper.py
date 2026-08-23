@@ -35,6 +35,29 @@ def parse_chapter_num(chap_str):
             return 999999.0
     return 999999.0
 
+def get_manga_detail(manga_id_or_title: str):
+    """
+    Fetch single manga detail object safely by UUID or title.
+    Returns: dict of manga object or None
+    """
+    cleaned = manga_id_or_title.strip()
+    try:
+        if len(cleaned) == 36 and '-' in cleaned:
+            url = f"{BASE_MANGADEX}/manga/{cleaned}?includes%5B%5D=cover_art"
+            res = requests.get(url, headers=HEADERS, timeout=5)
+            if res.status_code == 200:
+                return res.json().get("data")
+
+        url2 = f"{BASE_MANGADEX}/manga?title={urllib.parse.quote(cleaned)}&limit=5&includes%5B%5D=cover_art"
+        res2 = requests.get(url2, headers=HEADERS, timeout=5)
+        if res2.status_code == 200:
+            data = res2.json().get("data", [])
+            if data:
+                return data[0]
+    except Exception as e:
+        print(f"Error in get_manga_detail: {e}")
+    return None
+
 def get_search_result(query_or_url: str):
     """
     Search manga using MangaDex API with smart ranking & variant failover.
