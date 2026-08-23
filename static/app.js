@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v19.0
- * Scroll Auto-Hide Reader Control Bar & Pure Same-Origin Base64 PDF Generator
+ * Production Manga Reader Engine v20.0
+ * Latest Releases Grid & Expanded Genre Tags Resolver
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -15,7 +15,11 @@ const GENRE_TAGS = {
     fantasy: 'cdc58593-87dd-415e-bbc0-2ec27bf404cc',
     comedy: '4d32cc48-9f00-4cca-9b5a-a839f0764984',
     romance: '423e2eae-a7a2-4a8b-ac03-a8351462d71d',
-    scifi: '256c8bd9-4904-4360-bf4f-508a76d67183'
+    scifi: '256c8bd9-4904-4360-bf4f-508a76d67183',
+    supernatural: 'eabc5b4c-6aff-42f3-b657-3e90cbd00b75',
+    martialarts: '799c202e-7daa-44eb-9cf7-8a3c0441531e',
+    sliceoflife: 'e5301a23-ebd9-49dd-a0cb-2add944c7fe9',
+    mystery: 'ee968100-4191-4968-93d3-f82d72be7e46'
 };
 
 // Application State
@@ -53,6 +57,7 @@ const elements = {
     heroDescription: document.getElementById('hero-description'),
     heroStartBtn: document.getElementById('hero-start-btn'),
 
+    latestGrid: document.getElementById('latest-grid'),
     trendingGrid: document.getElementById('trending-grid'),
     actionGrid: document.getElementById('action-grid'),
     adventureGrid: document.getElementById('adventure-grid'),
@@ -278,7 +283,6 @@ function setupEventListeners() {
         });
     }
 
-    // Scroll Direction Listener: Auto-Hide Top Control Bar on Scroll Down, Reveal on Scroll Up
     window.addEventListener('scroll', () => {
         const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
@@ -304,18 +308,22 @@ function setupEventListeners() {
 
 function setupGenrePills() {
     const genres = [
+        { id: 'latest', name: '⚡ Latest Releases' },
         { id: 'all', name: '🔥 All Trending' },
         { id: 'dragonball', name: '🐲 Dragon Ball Universe' },
         { id: 'action', name: '⚔️ Action' },
         { id: 'adventure', name: '🗺️ Adventure' },
         { id: 'fantasy', name: '🔮 Fantasy' },
         { id: 'romance', name: '💖 Romance' },
-        { id: 'scifi', name: '🚀 Sci-Fi' }
+        { id: 'scifi', name: '🚀 Sci-Fi' },
+        { id: 'martialarts', name: '🥋 Martial Arts' },
+        { id: 'supernatural', name: '👻 Supernatural' },
+        { id: 'mystery', name: '🕵️ Mystery' }
     ];
 
     if (elements.genrePillsContainer) {
         elements.genrePillsContainer.innerHTML = genres.map(g => `
-            <button class="genre-pill ${g.id === 'all' ? 'active' : ''}" onclick="filterByGenre('${g.id}', this)">${g.name}</button>
+            <button class="genre-pill ${g.id === 'latest' ? 'active' : ''}" onclick="filterByGenre('${g.id}', this)">${g.name}</button>
         `).join('');
     }
 }
@@ -344,7 +352,6 @@ function showView(viewName) {
         elements.progressBar.style.width = '0%';
     }
 
-    // Ensure control bar is visible when switching view
     const controls = document.querySelector('.reader-controls-sticky');
     if (controls) controls.classList.remove('scroll-hidden');
 
@@ -457,6 +464,7 @@ async function downloadChapterPDF() {
 
 // Load Home Grids
 async function loadAllHomeGrids() {
+    if (elements.latestGrid) renderSkeletons(elements.latestGrid, 6);
     renderSkeletons(elements.trendingGrid, 12);
     renderSkeletons(elements.actionGrid, 6);
     renderSkeletons(elements.adventureGrid, 6);
@@ -464,12 +472,25 @@ async function loadAllHomeGrids() {
     renderSkeletons(elements.romanceGrid, 6);
 
     await Promise.all([
+        loadLatestGrid(),
         loadTrendingGrid(),
         loadCategoryGrid('action', elements.actionGrid),
         loadCategoryGrid('adventure', elements.adventureGrid),
         loadCategoryGrid('fantasy', elements.fantasyGrid),
         loadCategoryGrid('romance', elements.romanceGrid)
     ]);
+}
+
+async function loadLatestGrid() {
+    if (!elements.latestGrid) return;
+    try {
+        const url = `${API_BASE}/manga?limit=12&includes%5B%5D=cover_art&order%5BlatestUploadedChapter%5D=desc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.data && data.data.length > 0) {
+            renderMangaCards(elements.latestGrid, data.data);
+        }
+    } catch (e) {}
 }
 
 async function loadTrendingGrid() {
@@ -501,6 +522,12 @@ async function loadTrendingFallback() {
 
 async function loadCategoryGrid(genreKey, container) {
     if (!container) return;
+    
+    if (genreKey === 'latest') {
+        loadLatestGrid();
+        return;
+    }
+
     const tagId = GENRE_TAGS[genreKey];
     if (!tagId) return;
 
@@ -646,14 +673,28 @@ async function filterByGenre(genreKey, btnElement) {
         return;
     }
 
-    const tagId = GENRE_TAGS[genreKey];
-    if (tagId) {
-        elements.searchSection.style.display = 'block';
-        elements.searchTitle.textContent = `${genreKey.toUpperCase()} Manga Category`;
-        renderSkeletons(elements.searchResultsGrid, 18);
-        showView('home');
-        loadCategoryGrid(genreKey, elements.searchResultsGrid);
+    elements.searchSection.style.display = 'block';
+    elements.searchTitle.textContent = `${genreKey.toUpperCase()} Manga Category`;
+    renderSkeletons(elements.searchResultsGrid, 18);
+    showView('home');
+
+    if (genreKey === 'latest') {
+        loadLatestGridIntoContainer(elements.searchResultsGrid);
+        return;
     }
+
+    loadCategoryGrid(genreKey, elements.searchResultsGrid);
+}
+
+async function loadLatestGridIntoContainer(container) {
+    try {
+        const url = `${API_BASE}/manga?limit=24&includes%5B%5D=cover_art&order%5BlatestUploadedChapter%5D=desc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.data && data.data.length > 0) {
+            renderMangaCards(container, data.data);
+        }
+    } catch (e) {}
 }
 
 function renderMangaCards(container, mangaList) {

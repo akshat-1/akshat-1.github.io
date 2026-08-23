@@ -16,7 +16,12 @@ GENRE_TAGS = {
     "fantasy": "cdc58593-87dd-415e-bbc0-2ec27bf404cc",
     "comedy": "4d32cc48-9f00-4cca-9b5a-a839f0764984",
     "romance": "423e2eae-a7a2-4a8b-ac03-a8351462d71d",
-    "scifi": "256c8bd9-4904-4360-bf4f-508a76d67183"
+    "scifi": "256c8bd9-4904-4360-bf4f-508a76d67183",
+    "supernatural": "eabc5b4c-6aff-42f3-b657-3e90cbd00b75",
+    "martialarts": "799c202e-7daa-44eb-9cf7-8a3c0441531e",
+    "sliceoflife": "e5301a23-ebd9-49dd-a0cb-2add944c7fe9",
+    "mystery": "ee968100-4191-4968-93d3-f82d72be7e46",
+    "drama": "b9af3a63-f058-46de-a9a0-e0c13906197a"
 }
 
 def search_(query: str) -> str:
@@ -57,6 +62,47 @@ def get_manga_detail(manga_id_or_title: str):
     except Exception as e:
         print(f"Error in get_manga_detail: {e}")
     return None
+
+def get_latest_manga():
+    """Fetch recently uploaded manga series."""
+    titles = []
+    links = []
+    imgs = []
+    try:
+        url = f"{BASE_MANGADEX}/manga"
+        params = {
+            "limit": 12,
+            "includes[]": ["cover_art"],
+            "order[latestUploadedChapter]": "desc",
+            "contentRating[]": ["safe", "suggestive"]
+        }
+        res = requests.get(url, params=params, headers=HEADERS, timeout=10)
+        items = res.json().get("data", []) if res.status_code == 200 else []
+
+        for item in items:
+            m_id = item.get("id")
+            attr = item.get("attributes", {})
+            title_dict = attr.get("title", {})
+            title = title_dict.get("en") or next(iter(title_dict.values()), "Unknown Title")
+
+            cover_filename = ""
+            for rel in item.get("relationships", []):
+                if rel.get("type") == "cover_art" and "attributes" in rel:
+                    cover_filename = rel["attributes"].get("fileName", "")
+
+            cover_url = (
+                f"{COVER_BASE}/{m_id}/{cover_filename}.256.jpg"
+                if cover_filename
+                else "https://via.placeholder.com/200x300?text=No+Cover"
+            )
+
+            titles.append(title)
+            links.append(m_id)
+            imgs.append(cover_url)
+    except Exception as e:
+        print(f"Error in get_latest_manga: {e}")
+
+    return titles, links, imgs
 
 def get_search_result(query_or_url: str):
     """
@@ -146,12 +192,15 @@ def get_search_result(query_or_url: str):
 
 def get_category_manga(genre_key: str):
     """
-    Fetch manga for specific category (action, adventure, fantasy, comedy, romance, scifi).
+    Fetch manga for specific category (action, adventure, fantasy, comedy, romance, scifi, etc.).
     Returns: (titles, links, imgs)
     """
     titles = []
     links = []
     imgs = []
+
+    if genre_key.lower() == 'latest':
+        return get_latest_manga()
 
     tag_id = GENRE_TAGS.get(genre_key.lower())
     if not tag_id:
@@ -215,7 +264,6 @@ def get_chapters(manga_id_or_url: str):
         res = requests.get(url, params=params, headers=HEADERS, timeout=10)
         data = res.json().get("data", []) if res.status_code == 200 else []
 
-        # Filter chapters with pages > 2 (removes 1-page/2-page MangaDex notice entries)
         readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 2]
         if not readable:
             readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
