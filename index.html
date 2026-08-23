@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manga Reader - Free Online Manga</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
     <!-- FontAwesome Icons -->
@@ -11,38 +15,59 @@
     <!-- Custom CSS -->
     <link rel="stylesheet" href="static/app.css">
 </head>
-<body class="bg-dark text-light">
+<body>
+
+    <!-- Reading Progress Bar -->
+    <div class="progress-bar-reader" id="reader-progress-bar" style="width: 0%;"></div>
 
     <!-- Top Navigation Bar -->
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container-fluid px-3 px-lg-5">
             <a class="navbar-brand d-flex align-items-center" href="#" id="nav-brand">
-                <i class="fa-solid fa-book-open-reader me-2"></i> MangaReader
+                <i class="fa-solid fa-book-open-reader text-danger me-2"></i> MangaReader
             </a>
             
             <!-- Search Form -->
             <form class="search-container mx-auto my-2 my-lg-0" id="search-form">
                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input class="form-control search-input" type="search" placeholder="Search manga title..." id="search-input" autocomplete="off">
+                <input class="form-control search-input" type="search" placeholder="Search thousands of manga..." id="search-input" autocomplete="off">
                 <i class="fa-solid fa-circle-xmark search-clear" id="search-clear"></i>
             </form>
 
             <div class="d-flex align-items-center gap-3">
-                <a href="#" class="nav-link text-light" id="nav-home">
-                    <i class="fa-solid fa-house me-1"></i> Home
+                <a href="#" class="nav-link text-light font-weight-semibold" id="nav-home">
+                    <i class="fa-solid fa-compass me-1 text-danger"></i> Explore
                 </a>
-                <a href="#" class="nav-link text-light" id="nav-history">
-                    <i class="fa-solid fa-bookmark me-1"></i> History
+                <a href="#" class="nav-link text-light font-weight-semibold" id="nav-history">
+                    <i class="fa-solid fa-bookmark me-1 text-warning"></i> History
                 </a>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content Container -->
+    <!-- Main Content -->
     <main class="container-fluid px-3 px-lg-5 py-4">
         
         <!-- 1. HOME VIEW -->
         <section id="home-view">
+            
+            <!-- Hero Banner Spotlight -->
+            <div class="hero-banner" id="hero-banner">
+                <div class="hero-overlay">
+                    <span class="badge bg-danger mb-2 text-uppercase letter-spacing-1">🔥 Featured Series</span>
+                    <h1 class="hero-title" id="hero-title">Loading Featured Manga...</h1>
+                    <p class="hero-description" id="hero-description">Discover and read high quality manga online for free.</p>
+                    <button class="btn btn-danger btn-lg rounded-pill px-4" id="hero-start-btn">
+                        <i class="fa-solid fa-play me-2"></i> Start Reading
+                    </button>
+                </div>
+            </div>
+
+            <!-- Genre Pills Filter -->
+            <div class="mb-4">
+                <div class="genre-pills" id="genre-pills"></div>
+            </div>
+
             <!-- Search Results Section -->
             <div id="search-section" style="display: none;" class="mb-5">
                 <h4 class="fw-bold mb-4" id="search-title">Search Results</h4>
@@ -52,26 +77,25 @@
             <!-- Trending / Popular Section -->
             <div id="trending-section">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0"><i class="fa-solid fa-fire text-danger me-2"></i> Popular Manga</h4>
+                    <h4 class="fw-bold m-0"><i class="fa-solid fa-fire text-danger me-2"></i> Trending Manga</h4>
                 </div>
                 <div class="manga-grid" id="trending-grid"></div>
             </div>
         </section>
 
-        <!-- 2. DETAILS & CHAPTERS VIEW -->
+        <!-- 2. DETAILS VIEW -->
         <section id="details-view" style="display: none;">
-            <button class="btn btn-outline-light btn-sm mb-4" onclick="showView('home')">
-                <i class="fa-solid fa-arrow-left me-1"></i> Back to Explore
+            <button class="btn btn-outline-light btn-sm mb-4 rounded-pill px-3" onclick="showView('home')">
+                <i class="fa-solid fa-arrow-left me-1"></i> Back to Catalog
             </button>
 
-            <!-- Manga Header Card -->
             <div class="manga-detail-header">
                 <div class="row g-4 align-items-center">
                     <div class="col-md-3 text-center">
                         <img id="detail-cover" class="detail-cover img-fluid" src="" alt="Manga Cover">
                     </div>
                     <div class="col-md-9">
-                        <h2 class="fw-bold mb-2" id="detail-title">Loading...</h2>
+                        <h2 class="fw-bold mb-2" id="detail-title">Loading Title...</h2>
                         <div class="text-secondary small mb-3" id="detail-status">Status: Loading</div>
                         <div class="mb-3" id="detail-tags"></div>
                         <p class="text-light-50" id="detail-description">Loading description...</p>
@@ -79,13 +103,13 @@
                 </div>
             </div>
 
-            <!-- Chapters Section -->
+            <!-- Chapters List -->
             <div class="chapter-list-container">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                    <h5 class="fw-bold m-0"><i class="fa-solid fa-list me-2 text-danger"></i> Chapter List</h5>
+                    <h5 class="fw-bold m-0"><i class="fa-solid fa-list me-2 text-danger"></i> Chapter Releases</h5>
                     <div class="d-flex gap-2">
-                        <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter chapter..." id="chapter-search" style="max-width: 200px;">
-                        <button class="btn btn-outline-secondary btn-sm" id="sort-chapters-btn">
+                        <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter chapter number..." id="chapter-search" style="max-width: 220px;">
+                        <button class="btn btn-outline-secondary btn-sm rounded-pill" id="sort-chapters-btn">
                             <i class="fa-solid fa-arrow-down-1-9 me-1"></i> Ascending
                         </button>
                     </div>
@@ -95,39 +119,50 @@
         </section>
 
         <!-- 3. READER VIEW -->
-        <section id="reader-view" style="display: none;" class="reader-container">
-            <!-- Reader Sticky Controls -->
-            <div class="reader-controls-sticky">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                    <button class="btn btn-outline-light btn-sm" onclick="showView('details')">
-                        <i class="fa-solid fa-arrow-left me-1"></i> Details
-                    </button>
-                    <div class="text-center flex-grow-1">
-                        <div class="fw-bold text-truncate" id="reader-manga-title" style="max-width: 300px; margin: 0 auto;"></div>
-                        <small class="text-muted" id="reader-chapter-title"></small>
-                    </div>
-                    <div class="d-flex align-items-center gap-2">
-                        <select class="form-select form-select-sm bg-dark text-light border-secondary" id="chapter-select" style="max-width: 140px;"></select>
-                        <div class="form-check form-switch small">
-                            <input class="form-check-input" type="checkbox" id="quality-toggle">
-                            <label class="form-check-label text-muted" for="quality-toggle">Data Saver</label>
+        <section id="reader-view" style="display: none;">
+            <div class="reader-container reader-theme-dark" id="reader-container">
+                <!-- Sticky Controls -->
+                <div class="reader-controls-sticky">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <button class="btn btn-outline-light btn-sm rounded-pill" onclick="showView('details')">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Details
+                        </button>
+                        <div class="text-center flex-grow-1">
+                            <div class="fw-bold text-truncate" id="reader-manga-title" style="max-width: 320px; margin: 0 auto;"></div>
+                            <small class="text-muted" id="reader-chapter-title"></small>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select form-select-sm bg-dark text-light border-secondary" id="chapter-select" style="max-width: 150px;"></select>
+                            <div class="dropdown">
+                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Reader Background">
+                                    <i class="fa-solid fa-palette"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-dark">
+                                    <li><a class="dropdown-menu-item dropdown-item" href="#" onclick="setReaderTheme('dark')">Dark Theme</a></li>
+                                    <li><a class="dropdown-menu-item dropdown-item" href="#" onclick="setReaderTheme('black')">Pitch Black</a></li>
+                                    <li><a class="dropdown-menu-item dropdown-item" href="#" onclick="setReaderTheme('sepia')">Sepia</a></li>
+                                </ul>
+                            </div>
+                            <div class="form-check form-switch small">
+                                <input class="form-check-input" type="checkbox" id="quality-toggle">
+                                <label class="form-check-label text-muted" for="quality-toggle">Data Saver</label>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Page Counter Badge -->
-            <div class="text-center mb-3">
-                <span class="badge bg-secondary" id="page-counter">Page Counter</span>
-            </div>
+                <div class="text-center mb-3">
+                    <span class="badge bg-secondary" id="page-counter">Page Counter</span>
+                </div>
 
-            <!-- Reader Image Container -->
-            <div id="reader-pages-container"></div>
+                <!-- Image List Container -->
+                <div id="reader-pages-container"></div>
+            </div>
         </section>
 
         <!-- 4. HISTORY VIEW -->
         <section id="history-view" style="display: none;">
-            <h4 class="fw-bold mb-4"><i class="fa-solid fa-clock-rotate-left text-danger me-2"></i> Reading History</h4>
+            <h4 class="fw-bold mb-4"><i class="fa-solid fa-bookmark text-warning me-2"></i> Reading History</h4>
             <div class="row" id="history-grid"></div>
         </section>
 
@@ -135,11 +170,11 @@
 
     <!-- Floating Navigation Bar for Reader -->
     <div class="floating-nav d-flex align-items-center gap-3" id="reader-floating-nav" style="display: none !important;">
-        <button class="btn btn-danger btn-sm rounded-circle" id="prev-chap-btn" title="Previous Chapter">
+        <button class="btn btn-danger btn-sm rounded-circle shadow" id="prev-chap-btn" title="Previous Chapter">
             <i class="fa-solid fa-chevron-left"></i>
         </button>
-        <span class="small fw-semibold">Navigation</span>
-        <button class="btn btn-danger btn-sm rounded-circle" id="next-chap-btn" title="Next Chapter">
+        <span class="small fw-bold">Nav</span>
+        <button class="btn btn-danger btn-sm rounded-circle shadow" id="next-chap-btn" title="Next Chapter">
             <i class="fa-solid fa-chevron-right"></i>
         </button>
     </div>
