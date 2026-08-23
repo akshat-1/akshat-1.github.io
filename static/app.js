@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v17.0
- * Parallel Promise.all PDF Downloader & Instant Multi-Grid Performance Loader
+ * Production Manga Reader Engine v18.0
+ * Pure Same-Origin Base64 Proxy & Multi-Page PDF Generator
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -129,21 +129,34 @@ function handleCoverFailover(img, mId, coverFile) {
     }
 }
 
-// Convert Image URL to Base64 Data URL
-async function imageUrlToBase64(url) {
+// Convert Image URL to Base64 Data URL (Proxy Fallback + Direct Blob)
+async function getBase64DataUrl(imageUrl) {
+    if (!imageUrl) return null;
+
+    // 1. Try local same-origin proxy
     try {
-        const response = await fetch(url);
-        if (!response.ok) return null;
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch (e) {
-        return null;
-    }
+        const pyRes = await fetch(`/api/proxy_image?url=${encodeURIComponent(imageUrl)}`);
+        if (pyRes.ok) {
+            const pyData = await pyRes.json();
+            if (pyData.data_url) return pyData.data_url;
+        }
+    } catch (e) {}
+
+    // 2. Try direct blob fetch
+    try {
+        const res = await fetch(imageUrl);
+        if (res.ok) {
+            const blob = await res.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            });
+        }
+    } catch (e) {}
+
+    return null;
 }
 
 // Initialize Application
@@ -359,11 +372,10 @@ async function downloadChapterPDF() {
     showToast(`Downloading ${state.readerPages.length} pages for Chapter ${chapNum}... Please wait`);
 
     try {
-        // Concurrently fetch all base64 data URLs for all pages in parallel
         const fetchPromises = state.readerPages.map(page => {
             const primaryUrl = typeof page === 'string' ? page : page.primary;
             const secondaryUrl = typeof page === 'string' ? page : (page.secondary || page.backup);
-            return imageUrlToBase64(primaryUrl).then(b64 => b64 || imageUrlToBase64(secondaryUrl));
+            return getBase64DataUrl(primaryUrl).then(b64 => b64 || getBase64DataUrl(secondaryUrl));
         });
 
         const base64Results = await Promise.all(fetchPromises);
@@ -381,7 +393,6 @@ async function downloadChapterPDF() {
                 pdf.addPage();
             }
 
-            // Decode image natural dimensions for proportional aspect ratio
             const tempImg = new Image();
             tempImg.src = b64;
             await new Promise(resolve => {
@@ -426,7 +437,7 @@ async function downloadChapterPDF() {
     }
 }
 
-// Load Home Grids (Parallel Promise.all for Maximum Speed)
+// Load Home Grids
 async function loadAllHomeGrids() {
     renderSkeletons(elements.trendingGrid, 12);
     renderSkeletons(elements.actionGrid, 6);
@@ -434,7 +445,6 @@ async function loadAllHomeGrids() {
     renderSkeletons(elements.fantasyGrid, 6);
     renderSkeletons(elements.romanceGrid, 6);
 
-    // Execute all 5 grid requests concurrently in parallel for instant speed
     await Promise.all([
         loadTrendingGrid(),
         loadCategoryGrid('action', elements.actionGrid),
@@ -972,7 +982,7 @@ async function loadChapter(index) {
 function renderPages() {
     const zoomStyle = `style="max-width: ${state.zoomLevel}%; margin: 0 auto 14px auto;"`;
     elements.readerPagesContainer.innerHTML = state.readerPages.map((page, i) => `
-        <img src="${page.primary}" class="reader-image" ${zoomStyle} alt="Page ${i + 1}" referrerpolicy="no-referrer" onerror="handleImageFailover(this, '${page.secondary}', '${page.backup}')">
+        <img src="${page.primary}" class="reader-image" ${zoomStyle} alt="Page ${i + 1}" loading="lazy" referrerpolicy="no-referrer" onerror="handleImageFailover(this, '${page.secondary}', '${page.backup}')">
     `).join('');
 }
 
