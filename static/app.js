@@ -274,7 +274,13 @@ function setupEventListeners() {
             elements.sortChaptersBtn.innerHTML = state.chapterSortAsc
                 ? '<i class="fa-solid fa-arrow-down-1-9 me-1"></i> Ascending'
                 : '<i class="fa-solid fa-arrow-up-9-1 me-1"></i> Descending';
-            renderChapterList();
+
+            if (!state.chapterSortAsc && state.rangePillsList && state.rangePillsList.length > 1) {
+                const latestIdx = state.rangePillsList.length - 2;
+                selectRangeByIdx(latestIdx);
+            } else {
+                renderChapterList();
+            }
         });
     }
 
@@ -970,7 +976,16 @@ function processAndRenderChapters() {
     renderChapterRangePills(processedList);
 }
 
-// Interactive Chapter Range Selector Box Generator (Ch 1-50, 51-100, 101-150...)
+function selectRangeByIdx(idx) {
+    if (!state.rangePillsList || idx < 0 || idx >= state.rangePillsList.length) return;
+    const r = state.rangePillsList[idx];
+    const pills = elements.chapterRangePills ? elements.chapterRangePills.children : [];
+    filterChapterRange(r.min, r.max, pills[idx], idx);
+    const box = document.getElementById('chapter-range-box');
+    if (box) box.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Interactive Chapter Range Selector Box Generator (Ch 1-100, 101-200... 1100-1200)
 function renderChapterRangePills(totalChapters) {
     elements.chapterRangeBox = document.getElementById('chapter-range-box');
     elements.chapterRangePills = document.getElementById('chapter-range-pills');
@@ -1010,7 +1025,7 @@ function renderChapterRangePills(totalChapters) {
 
         if (count > 0 || start === 1) {
             rangePills.push({
-                label: `Ch. ${start} - ${end}`,
+                label: `Ch. ${start} - ${end} (${count})`,
                 min: start,
                 max: end,
                 count: count
@@ -1028,12 +1043,14 @@ function renderChapterRangePills(totalChapters) {
         });
     }
 
-    // Check history to default to the range containing the user's last read chapter
+    // Check history or descending sort preference
     const history = getHistory();
     const currentMangaHistory = (state.currentManga && history[state.currentManga.id]) ? history[state.currentManga.id] : null;
     let initialRangeIndex = 0;
 
-    if (currentMangaHistory && currentMangaHistory.lastChapterNum) {
+    if (!state.chapterSortAsc && rangePills.length > 1) {
+        initialRangeIndex = rangePills.length - 2; // Default to latest range tab when sorting descending
+    } else if (currentMangaHistory && currentMangaHistory.lastChapterNum) {
         const lastNum = parseFloat(currentMangaHistory.lastChapterNum);
         if (!isNaN(lastNum)) {
             const foundIdx = rangePills.findIndex(r => r.min <= lastNum && lastNum <= r.max);
@@ -1041,8 +1058,10 @@ function renderChapterRangePills(totalChapters) {
         }
     }
 
+    state.rangePillsList = rangePills;
+
     elements.chapterRangePills.innerHTML = rangePills.map((r, idx) => `
-        <button class="genre-pill ${idx === initialRangeIndex ? 'active' : ''}" onclick="filterChapterRange(${r.min}, ${r.max}, this)">
+        <button class="genre-pill ${idx === initialRangeIndex ? 'active' : ''}" onclick="filterChapterRange(${r.min}, ${r.max}, this, ${idx})">
             ${r.label}
         </button>
     `).join('');
@@ -1050,10 +1069,10 @@ function renderChapterRangePills(totalChapters) {
     elements.chapterRangeBox.style.display = 'block';
 
     const initRange = rangePills[initialRangeIndex] || rangePills[0];
-    filterChapterRange(initRange.min, initRange.max, elements.chapterRangePills.children[initialRangeIndex]);
+    filterChapterRange(initRange.min, initRange.max, elements.chapterRangePills.children[initialRangeIndex], initialRangeIndex);
 }
 
-function filterChapterRange(minNum, maxNum, btnElement) {
+function filterChapterRange(minNum, maxNum, btnElement, rangeIdx) {
     if (btnElement && elements.chapterRangePills) {
         const buttons = elements.chapterRangePills.querySelectorAll('.genre-pill');
         buttons.forEach(b => b.classList.remove('active'));
@@ -1061,6 +1080,7 @@ function filterChapterRange(minNum, maxNum, btnElement) {
     }
 
     state.activeRange = { min: minNum, max: maxNum };
+    state.activeRangeIdx = (rangeIdx !== undefined) ? rangeIdx : (state.rangePillsList ? state.rangePillsList.findIndex(r => r.min === minNum && r.max === maxNum) : 0);
 
     if (minNum === 0 && maxNum === 999999) {
         state.currentChapterList = [...state.allChapterList];
@@ -1161,7 +1181,7 @@ function renderChapterList() {
     const history = getHistory();
     const currentMangaHistory = (state.currentManga && history[state.currentManga.id]) ? history[state.currentManga.id] : {};
 
-    elements.chapterList.innerHTML = list.map((ch) => {
+    const chapterItemsHtml = list.map((ch) => {
         const globalIndex = state.allChapterList.findIndex(c => c.id === ch.id);
         const num = ch.attributes.chapter || 'Extra';
         const title = ch.attributes.title ? `: ${ch.attributes.title}` : '';
@@ -1180,12 +1200,67 @@ function renderChapterList() {
         `;
     }).join('');
 
+    let rangeNavHtml = '';
+    if (state.rangePillsList && state.rangePillsList.length > 1) {
+        const currentIdx = state.activeRangeIdx !== undefined ? state.activeRangeIdx : 0;
+        const prevRange = (currentIdx > 0 && currentIdx < state.rangePillsList.length - 1) ? state.rangePillsList[currentIdx - 1] : null;
+        const nextRange = (currentIdx >= 0 && currentIdx < state.rangePillsList.length - 2) ? state.rangePillsList[currentIdx + 1] : null;
+
+        rangeNavHtml = `
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 pt-3 border-top border-secondary">
+                <div>
+                    ${prevRange ? `
+                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="selectRangeByIdx(${currentIdx - 1})">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Prev: ${prevRange.label}
+                        </button>
+                    ` : ''}
+                </div>
+                <div>
+                    ${(state.activeRange && state.activeRange.min !== 0) ? `
+                        <button class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="selectRangeByIdx(${state.rangePillsList.length - 1})">
+                            <i class="fa-solid fa-layer-group me-1"></i> Show All (${state.allChapterList.length} chapters)
+                        </button>
+                    ` : ''}
+                </div>
+                <div>
+                    ${nextRange ? `
+                        <button class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="selectRangeByIdx(${currentIdx + 1})">
+                            Next: ${nextRange.label} <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    elements.chapterList.innerHTML = chapterItemsHtml + rangeNavHtml;
+
     filterChapterList();
 }
 
 function filterChapterList() {
-    const query = elements.chapterSearch ? elements.chapterSearch.value.toLowerCase() : '';
+    const query = elements.chapterSearch ? elements.chapterSearch.value.toLowerCase().trim() : '';
     const selectedLang = elements.chapterLangSelect ? elements.chapterLangSelect.value.toLowerCase() : 'all';
+
+    // Auto-switch to 'Show All' if typed query exists in all chapters but hidden in current range tab
+    if (query && state.activeRange && state.activeRange.min !== 0 && state.rangePillsList) {
+        const matchesInCurrent = state.currentChapterList.some(c => {
+            const num = (c.attributes.chapter || '').toLowerCase();
+            const title = (c.attributes.title || '').toLowerCase();
+            return num.includes(query) || title.includes(query);
+        });
+
+        const matchesInAll = state.allChapterList.some(c => {
+            const num = (c.attributes.chapter || '').toLowerCase();
+            const title = (c.attributes.title || '').toLowerCase();
+            return num.includes(query) || title.includes(query);
+        });
+
+        if (!matchesInCurrent && matchesInAll) {
+            selectRangeByIdx(state.rangePillsList.length - 1);
+            return;
+        }
+    }
     
     const items = elements.chapterList.querySelectorAll('.chapter-item');
     items.forEach(item => {
