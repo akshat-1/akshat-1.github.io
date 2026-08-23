@@ -159,20 +159,28 @@ function handleCoverFailover(img, mId, coverFile) {
     }
 }
 
-// Convert Image URL to Base64 Data URL (Proxy Fallback + Direct Blob)
+// Convert Image URL to Base64 Data URL (Direct CORS + Proxy Fallback)
 async function getBase64DataUrl(imageUrl) {
     if (!imageUrl) return null;
 
+    // 1. Direct fetch with CORS
     try {
-        const pyRes = await fetch(`/api/proxy_image?url=${encodeURIComponent(imageUrl)}`);
-        if (pyRes.ok) {
-            const pyData = await pyRes.json();
-            if (pyData.data_url) return pyData.data_url;
+        const res = await fetch(imageUrl, { mode: 'cors' });
+        if (res.ok) {
+            const blob = await res.blob();
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+            });
         }
     } catch (e) {}
 
+    // 2. CORS Proxy Fallback
     try {
-        const res = await fetch(imageUrl);
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(imageUrl)}`;
+        const res = await fetch(proxyUrl);
         if (res.ok) {
             const blob = await res.blob();
             return new Promise((resolve) => {
@@ -185,6 +193,31 @@ async function getBase64DataUrl(imageUrl) {
     } catch (e) {}
 
     return null;
+}
+
+// Convert any image Data URL to a clean, distinct JPEG Base64 Data URL via HTML Canvas
+async function standardizeImageToJpeg(b64DataUrl) {
+    if (!b64DataUrl) return null;
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.naturalWidth || img.width || 800;
+                canvas.height = img.naturalHeight || img.height || 1200;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0);
+                const jpegData = canvas.toDataURL('image/jpeg', 0.92);
+                resolve({ dataUrl: jpegData, width: canvas.width, height: canvas.height });
+            } catch (err) {
+                resolve({ dataUrl: b64DataUrl, width: img.naturalWidth || 800, height: img.naturalHeight || 1200 });
+            }
+        };
+        img.onerror = () => resolve(null);
+        img.src = b64DataUrl;
+    });
 }
 
 // Initialize Application
@@ -421,9 +454,10 @@ async function downloadChapterPDF() {
     }
 
     const mangaTitle = state.currentManga ? ((state.currentManga.attributes.title && (state.currentManga.attributes.title.en || Object.values(state.currentManga.attributes.title)[0])) || 'Manga') : 'Manga';
-    const chapNum = (state.currentChapterList[state.currentChapterIndex] && state.currentChapterList[state.currentChapterIndex].attributes.chapter) || '1';
+    const currentChObj = (state.allChapterList && state.currentChapterIndex >= 0) ? state.allChapterList[state.currentChapterIndex] : null;
+    const chapNum = (currentChObj && currentChObj.attributes && currentChObj.attributes.chapter) || '1';
 
-    showToast(`Downloading ${state.readerPages.length} pages for Chapter ${chapNum}... Please wait`);
+    showToast(`Preparing ${state.readerPages.length} pages for Chapter ${chapNum}... Please wait`);
 
     try {
         const fetchPromises = state.readerPages.map(page => {
@@ -432,31 +466,27 @@ async function downloadChapterPDF() {
             return getBase64DataUrl(primaryUrl).then(b64 => b64 || getBase64DataUrl(secondaryUrl));
         });
 
-        const base64Results = await Promise.all(fetchPromises);
+        const rawBase64Results = await Promise.all(fetchPromises);
+
+        // Standardize each page into distinct JPEG canvas data
+        const jpegPromises = rawBase64Results.map(b64 => standardizeImageToJpeg(b64));
+        const pageObjects = await Promise.all(jpegPromises);
 
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
 
         let addedPages = 0;
-        for (let i = 0; i < base64Results.length; i++) {
-            const b64 = base64Results[i];
-            if (!b64) continue;
+        for (let i = 0; i < pageObjects.length; i++) {
+            const pageObj = pageObjects[i];
+            if (!pageObj || !pageObj.dataUrl) continue;
 
             if (addedPages > 0) {
                 pdf.addPage();
             }
 
-            const tempImg = new Image();
-            tempImg.src = b64;
-            await new Promise(resolve => {
-                if (tempImg.complete) resolve();
-                else tempImg.onload = resolve;
-                tempImg.onerror = resolve;
-            });
-
-            const imgW = tempImg.naturalWidth || 600;
-            const imgH = tempImg.naturalHeight || 800;
+            const imgW = pageObj.width || 800;
+            const imgH = pageObj.height || 1200;
             const imgRatio = imgW / imgH;
             const pdfRatio = pdfWidth / pdfHeight;
 
@@ -472,8 +502,8 @@ async function downloadChapterPDF() {
             const xOffset = (pdfWidth - renderW) / 2;
             const yOffset = (pdfHeight - renderH) / 2;
 
-            const aliasKey = `pdf_page_${i + 1}_${Date.now()}_${Math.random()}`;
-            pdf.addImage(b64, 'JPEG', xOffset, yOffset, renderW, renderH, aliasKey, 'FAST');
+            // Omit alias parameter so jsPDF NEVER caches or reuses previous page images
+            pdf.addImage(pageObj.dataUrl, 'JPEG', xOffset, yOffset, renderW, renderH, undefined, 'FAST');
             addedPages++;
         }
 
@@ -481,7 +511,7 @@ async function downloadChapterPDF() {
             const cleanName = mangaTitle.replace(/[^\w\s-]/gi, '').trim();
             const filename = `${cleanName}_Chapter_${chapNum}.pdf`;
             pdf.save(filename);
-            showToast(`PDF Download Complete (${addedPages} pages)!`);
+            showToast(`PDF Download Complete (${addedPages} distinct pages)!`);
         } else {
             showToast('Failed to fetch image pages for PDF.');
         }
