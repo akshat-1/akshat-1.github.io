@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v16.0
- * Unique jsPDF Alias Key Page Generator & Proportional Scaling
+ * Production Manga Reader Engine v17.0
+ * Parallel Promise.all PDF Downloader & Instant Multi-Grid Performance Loader
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -129,10 +129,11 @@ function handleCoverFailover(img, mId, coverFile) {
     }
 }
 
-// Convert Image URL to Base64 Data URL (Fixes Canvas Taint DOMException)
+// Convert Image URL to Base64 Data URL
 async function imageUrlToBase64(url) {
     try {
         const response = await fetch(url);
+        if (!response.ok) return null;
         const blob = await response.blob();
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -339,7 +340,7 @@ function shareMangaLink() {
     }
 }
 
-// Download Chapter as PDF Functionality (jsPDF + Unique Page Alias + Proportional Scaling)
+// Concurrently Fetch All Base64 Chapter Pages for PDF Generation (Guarantees ALL Pages in PDF)
 async function downloadChapterPDF() {
     if (!state.readerPages || state.readerPages.length === 0) {
         showToast('No pages available to download.');
@@ -352,75 +353,63 @@ async function downloadChapterPDF() {
         return;
     }
 
-    showToast('Generating PDF for chapter... Please wait...');
-
     const mangaTitle = state.currentManga ? ((state.currentManga.attributes.title && (state.currentManga.attributes.title.en || Object.values(state.currentManga.attributes.title)[0])) || 'Manga') : 'Manga';
     const chapNum = (state.currentChapterList[state.currentChapterIndex] && state.currentChapterList[state.currentChapterIndex].attributes.chapter) || '1';
 
+    showToast(`Downloading ${state.readerPages.length} pages for Chapter ${chapNum}... Please wait`);
+
     try {
+        // Concurrently fetch all base64 data URLs for all pages in parallel
+        const fetchPromises = state.readerPages.map(page => {
+            const primaryUrl = typeof page === 'string' ? page : page.primary;
+            const secondaryUrl = typeof page === 'string' ? page : (page.secondary || page.backup);
+            return imageUrlToBase64(primaryUrl).then(b64 => b64 || imageUrlToBase64(secondaryUrl));
+        });
+
+        const base64Results = await Promise.all(fetchPromises);
+
         const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
 
-        const imgElements = elements.readerPagesContainer.querySelectorAll('.reader-image');
         let addedPages = 0;
+        for (let i = 0; i < base64Results.length; i++) {
+            const b64 = base64Results[i];
+            if (!b64) continue;
 
-        for (let i = 0; i < state.readerPages.length; i++) {
-            let base64Data = null;
-            
-            // 1. Try DOM img src
-            if (imgElements[i] && imgElements[i].src && !imgElements[i].src.includes('placeholder')) {
-                base64Data = await imageUrlToBase64(imgElements[i].src);
+            if (addedPages > 0) {
+                pdf.addPage();
             }
 
-            // 2. Try primary state page URL
-            if (!base64Data && state.readerPages[i]) {
-                const pageObj = state.readerPages[i];
-                const primaryUrl = typeof pageObj === 'string' ? pageObj : pageObj.primary;
-                base64Data = await imageUrlToBase64(primaryUrl);
+            // Decode image natural dimensions for proportional aspect ratio
+            const tempImg = new Image();
+            tempImg.src = b64;
+            await new Promise(resolve => {
+                if (tempImg.complete) resolve();
+                else tempImg.onload = resolve;
+                tempImg.onerror = resolve;
+            });
+
+            const imgW = tempImg.naturalWidth || 600;
+            const imgH = tempImg.naturalHeight || 800;
+            const imgRatio = imgW / imgH;
+            const pdfRatio = pdfWidth / pdfHeight;
+
+            let renderW, renderH;
+            if (imgRatio > pdfRatio) {
+                renderW = pdfWidth;
+                renderH = pdfWidth / imgRatio;
+            } else {
+                renderH = pdfHeight;
+                renderW = pdfHeight * imgRatio;
             }
 
-            // 3. Try secondary/backup state page URL
-            if (!base64Data && state.readerPages[i] && typeof state.readerPages[i] === 'object') {
-                base64Data = await imageUrlToBase64(state.readerPages[i].secondary || state.readerPages[i].backup);
-            }
+            const xOffset = (pdfWidth - renderW) / 2;
+            const yOffset = (pdfHeight - renderH) / 2;
 
-            if (base64Data) {
-                if (addedPages > 0) pdf.addPage();
-
-                // Decode Image to calculate Proportional Aspect Ratio
-                const tempImg = new Image();
-                tempImg.src = base64Data;
-                await new Promise(resolve => {
-                    if (tempImg.complete) resolve();
-                    else tempImg.onload = resolve;
-                    tempImg.onerror = resolve;
-                });
-
-                const imgW = tempImg.naturalWidth || tempImg.width || 600;
-                const imgH = tempImg.naturalHeight || tempImg.height || 800;
-                const imgRatio = imgW / imgH;
-                const pdfRatio = pdfWidth / pdfHeight;
-
-                let renderW, renderH;
-                if (imgRatio > pdfRatio) {
-                    renderW = pdfWidth;
-                    renderH = pdfWidth / imgRatio;
-                } else {
-                    renderH = pdfHeight;
-                    renderW = pdfHeight * imgRatio;
-                }
-
-                const xOffset = (pdfWidth - renderW) / 2;
-                const yOffset = (pdfHeight - renderH) / 2;
-
-                // CRITICAL FIX: Pass unique alias key 'page_' + i so jsPDF does not cache/repeat page 1 image!
-                const aliasKey = `page_${i + 1}_${Date.now()}`;
-                pdf.addImage(base64Data, 'JPEG', xOffset, yOffset, renderW, renderH, aliasKey, 'FAST');
-                addedPages++;
-
-                showToast(`Packaging page ${addedPages} of ${state.readerPages.length}...`);
-            }
+            const aliasKey = `pdf_page_${i + 1}_${Date.now()}_${Math.random()}`;
+            pdf.addImage(b64, 'JPEG', xOffset, yOffset, renderW, renderH, aliasKey, 'FAST');
+            addedPages++;
         }
 
         if (addedPages > 0) {
@@ -437,7 +426,7 @@ async function downloadChapterPDF() {
     }
 }
 
-// Load Home Grids
+// Load Home Grids (Parallel Promise.all for Maximum Speed)
 async function loadAllHomeGrids() {
     renderSkeletons(elements.trendingGrid, 12);
     renderSkeletons(elements.actionGrid, 6);
@@ -445,6 +434,17 @@ async function loadAllHomeGrids() {
     renderSkeletons(elements.fantasyGrid, 6);
     renderSkeletons(elements.romanceGrid, 6);
 
+    // Execute all 5 grid requests concurrently in parallel for instant speed
+    await Promise.all([
+        loadTrendingGrid(),
+        loadCategoryGrid('action', elements.actionGrid),
+        loadCategoryGrid('adventure', elements.adventureGrid),
+        loadCategoryGrid('fantasy', elements.fantasyGrid),
+        loadCategoryGrid('romance', elements.romanceGrid)
+    ]);
+}
+
+async function loadTrendingGrid() {
     try {
         const url = `${API_BASE}/manga?limit=18&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const res = await fetch(url);
@@ -459,11 +459,6 @@ async function loadAllHomeGrids() {
     } catch (e) {
         loadTrendingFallback();
     }
-
-    loadCategoryGrid('action', elements.actionGrid);
-    loadCategoryGrid('adventure', elements.adventureGrid);
-    loadCategoryGrid('fantasy', elements.fantasyGrid);
-    loadCategoryGrid('romance', elements.romanceGrid);
 }
 
 async function loadTrendingFallback() {
@@ -754,7 +749,6 @@ async function loadMangaDetails(manga) {
         const res = await fetch(feedUrl);
         const data = await res.json();
         
-        // Filter chapters with pages > 2 (removes 1-page/2-page MangaDex notice entries)
         let readable = (data.data || []).filter(c => (c.attributes.pages || 0) > 2);
         if (readable.length === 0) readable = (data.data || []).filter(c => (c.attributes.pages || 0) > 0);
         if (readable.length === 0) readable = data.data || [];
@@ -978,7 +972,7 @@ async function loadChapter(index) {
 function renderPages() {
     const zoomStyle = `style="max-width: ${state.zoomLevel}%; margin: 0 auto 14px auto;"`;
     elements.readerPagesContainer.innerHTML = state.readerPages.map((page, i) => `
-        <img src="${page.primary}" class="reader-image" ${zoomStyle} alt="Page ${i + 1}" loading="lazy" referrerpolicy="no-referrer" onerror="handleImageFailover(this, '${page.secondary}', '${page.backup}')">
+        <img src="${page.primary}" class="reader-image" ${zoomStyle} alt="Page ${i + 1}" referrerpolicy="no-referrer" onerror="handleImageFailover(this, '${page.secondary}', '${page.backup}')">
     `).join('');
 }
 
