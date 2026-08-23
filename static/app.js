@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v11.0
- * 2-Tier Chapter Image Failover Resolver
+ * Production Manga Reader Engine v13.0
+ * Share Manga Links & PDF Chapter Downloader Engine
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -21,6 +21,7 @@ const GENRE_TAGS = {
 // Application State
 const state = {
     currentView: 'home',
+    heroManga: null,
     currentManga: null,
     currentChapterList: [],
     currentChapterIndex: -1,
@@ -134,13 +135,33 @@ document.addEventListener('DOMContentLoaded', () => {
     setupGenrePills();
     loadAllHomeGrids();
     setupKeyboardNavigation();
+    checkURLParams();
 });
+
+function checkURLParams() {
+    const params = new URLSearchParams(window.location.search);
+    const mangaId = params.get('manga');
+    if (mangaId) {
+        loadMangaDetailsById(mangaId);
+    }
+}
 
 function setupEventListeners() {
     if (elements.navBrand) {
         elements.navBrand.addEventListener('click', (e) => {
             e.preventDefault();
             showView('home');
+        });
+    }
+
+    if (elements.heroStartBtn) {
+        elements.heroStartBtn.addEventListener('click', () => {
+            if (state.heroManga) {
+                loadMangaDetails(state.heroManga);
+            } else {
+                const trendingSec = document.getElementById('trending-section');
+                if (trendingSec) trendingSec.scrollIntoView({ behavior: 'smooth' });
+            }
         });
     }
 
@@ -282,6 +303,77 @@ function showView(viewName) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// Share Manga Functionality
+function shareMangaLink() {
+    if (!state.currentManga) return;
+    const attr = state.currentManga.attributes || {};
+    const title = (attr.title && (attr.title.en || Object.values(attr.title)[0])) || 'Manga';
+    const url = window.location.origin + window.location.pathname + `?manga=${state.currentManga.id}`;
+
+    if (navigator.share) {
+        navigator.share({ title: title, text: `Read ${title} on MangaReader!`, url: url }).catch(() => {});
+    } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+            showToast('Share link copied to clipboard!');
+        }).catch(() => {
+            showToast('Share URL: ' + url);
+        });
+    } else {
+        showToast('Share URL: ' + url);
+    }
+}
+
+// Download Chapter as PDF Functionality (Powered by jsPDF)
+async function downloadChapterPDF() {
+    if (!state.readerPages || state.readerPages.length === 0) {
+        showToast('No pages available to download.');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) {
+        showToast('PDF engine initializing... Please try again in a moment.');
+        return;
+    }
+
+    showToast('Generating PDF for chapter... Please wait...');
+
+    const mangaTitle = state.currentManga ? ((state.currentManga.attributes.title && (state.currentManga.attributes.title.en || Object.values(state.currentManga.attributes.title)[0])) || 'Manga') : 'Manga';
+    const chapNum = (state.currentChapterList[state.currentChapterIndex] && state.currentChapterList[state.currentChapterIndex].attributes.chapter) || '1';
+
+    try {
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+
+        const imgElements = elements.readerPagesContainer.querySelectorAll('img');
+
+        for (let i = 0; i < imgElements.length; i++) {
+            const img = imgElements[i];
+            if (!img.complete || img.naturalWidth === 0) continue;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth;
+            canvas.height = img.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.85);
+
+            if (i > 0) pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        }
+
+        const cleanName = mangaTitle.replace(/[^\w\s-]/gi, '').trim();
+        const filename = `${cleanName}_Chapter_${chapNum}.pdf`;
+        pdf.save(filename);
+        showToast(`PDF Downloaded: ${filename}`);
+    } catch (err) {
+        console.error('PDF Generation Error:', err);
+        showToast('Failed to generate PDF. Please try again.');
+    }
+}
+
 // Load Home Grids
 async function loadAllHomeGrids() {
     renderSkeletons(elements.trendingGrid, 12);
@@ -295,6 +387,7 @@ async function loadAllHomeGrids() {
         const res = await fetch(url);
         const data = await res.json();
         if (data.data && data.data.length > 0) {
+            state.heroManga = data.data[0];
             renderHeroBanner(data.data[0]);
             renderMangaCards(elements.trendingGrid, data.data);
         } else {
@@ -349,13 +442,13 @@ async function loadCategoryGrid(genreKey, container) {
 
 function renderHeroBanner(manga) {
     if (!elements.heroBanner || !manga) return;
+    state.heroManga = manga;
     const attr = manga.attributes;
     const title = attr.title.en || Object.values(attr.title)[0] || 'Featured Series';
     const desc = getMangaDescription(attr);
 
     elements.heroTitle.textContent = title;
     elements.heroDescription.textContent = desc.length > 250 ? desc.slice(0, 250) + '...' : desc;
-    elements.heroStartBtn.onclick = () => loadMangaDetails(manga);
 }
 
 // Search Engine
@@ -521,7 +614,7 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
     const trimmed = mangaIdOrQuery.trim();
     const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed);
 
-    // 1. Try Direct UUID fetch with encoded URL
+    // 1. Try Direct UUID fetch
     if (isUuid) {
         try {
             const res = await fetch(`${API_BASE}/manga/${trimmed}?includes%5B%5D=cover_art`);
@@ -532,7 +625,6 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
             }
         } catch (e) {}
 
-        // 2. Try Python Flask API fallback
         try {
             const pyRes = await fetch(`/api/manga/${trimmed}`);
             const pyData = await pyRes.json();
@@ -543,7 +635,7 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
         } catch (e) {}
     }
 
-    // 3. Title Search resolution
+    // 2. Title Search resolution
     try {
         const searchRes = await fetch(`${API_BASE}/manga?title=${encodeURIComponent(trimmed)}&limit=5&includes%5B%5D=cover_art`);
         const searchData = await searchRes.json();
@@ -553,7 +645,6 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
         }
     } catch (e) {}
 
-    // 4. Python Search Fallback
     try {
         const pySearchRes = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
         const pySearchData = await pySearchRes.json();
@@ -596,7 +687,6 @@ async function loadMangaDetails(manga) {
     loadRelatedSeries(title);
 
     try {
-        // ENCODED FEED URL (Fixes TypeError in fetch)
         const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&order%5Bchapter%5D=asc`;
         const res = await fetch(feedUrl);
         const data = await res.json();
@@ -740,7 +830,7 @@ function filterChapterList() {
     });
 }
 
-// Load Reader View with 2-Tier Image Resolver (Client @at-home + Flask /api/images/<id>)
+// Load Reader View
 async function loadChapter(index) {
     if (index < 0 || index >= state.currentChapterList.length) return;
     
@@ -767,7 +857,6 @@ async function loadChapter(index) {
 
     let resolvedPages = [];
 
-    // 1. Try Direct client-side fetch from MangaDex @at-home API
     try {
         const res = await fetch(`${API_BASE}/at-home/server/${chapter.id}`);
         if (res.ok) {
@@ -789,7 +878,6 @@ async function loadChapter(index) {
         console.error('Client @at-home fetch hiccup:', err);
     }
 
-    // 2. Try Fallback to Python server API if direct fetch produced 0 pages
     if (resolvedPages.length === 0) {
         try {
             const pyImgRes = await fetch(`/api/images/${chapter.id}`);
@@ -803,9 +891,7 @@ async function loadChapter(index) {
                     }));
                 }
             }
-        } catch (e) {
-            console.error('Fallback image API error:', e);
-        }
+        } catch (e) {}
     }
 
     if (resolvedPages.length > 0) {
