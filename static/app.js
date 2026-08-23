@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v7.0
- * Robust UUID/Title Detail Resolution & Canonical Cover Fallbacks
+ * Production Manga Reader Engine v9.0
+ * Encoded URL Parameter Syntax & Multi-Source Detail Resolver
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -291,7 +291,7 @@ async function loadAllHomeGrids() {
     renderSkeletons(elements.romanceGrid, 6);
 
     try {
-        const url = `${API_BASE}/manga?limit=18&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+        const url = `${API_BASE}/manga?limit=18&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.data && data.data.length > 0) {
@@ -312,7 +312,7 @@ async function loadCategoryGrid(genreKey, container) {
     if (!tagId) return;
 
     try {
-        const url = `${API_BASE}/manga?limit=6&includedTags[]=${tagId}&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+        const url = `${API_BASE}/manga?limit=6&includedTags%5B%5D=${tagId}&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const res = await fetch(url);
         const data = await res.json();
         if (data.data && data.data.length > 0) {
@@ -344,7 +344,7 @@ function renderHeroBanner(manga) {
     elements.heroStartBtn.onclick = () => loadMangaDetails(manga);
 }
 
-// Search Engine with Fallback
+// Search Engine with Encoding & Fallback
 async function performSearch(query) {
     elements.searchSection.style.display = 'block';
     elements.searchTitle.textContent = `Search Results for "${query}"`;
@@ -353,7 +353,7 @@ async function performSearch(query) {
 
     try {
         const cleanQuery = query.replace(/[^\w\s-]/gi, '').trim();
-        const url = `${API_BASE}/manga?title=${encodeURIComponent(cleanQuery || query)}&limit=24&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+        const url = `${API_BASE}/manga?title=${encodeURIComponent(cleanQuery || query)}&limit=24&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -395,7 +395,7 @@ function renderFallbackSearchCards(container, data) {
         card.className = 'manga-card';
         card.innerHTML = `
             <div class="manga-cover-wrapper">
-                <img src="${img}" class="manga-cover" alt="${escapeHtml(title)}" loading="lazy">
+                <img src="${img}" class="manga-cover" alt="${escapeHtml(title)}" loading="lazy" referrerpolicy="no-referrer">
             </div>
             <div class="manga-info">
                 <div class="manga-title">${escapeHtml(title)}</div>
@@ -408,7 +408,7 @@ function renderFallbackSearchCards(container, data) {
 
 async function handleSearchAutocomplete(query) {
     try {
-        const url = `${API_BASE}/manga?title=${encodeURIComponent(query)}&limit=6&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+        const url = `${API_BASE}/manga?title=${encodeURIComponent(query)}&limit=6&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -419,7 +419,7 @@ async function handleSearchAutocomplete(query) {
 
                 return `
                     <div class="search-popup-item" onclick="loadMangaDetailsById('${m.id}')">
-                        <img src="${coverUrl}" class="search-popup-cover" alt="Cover">
+                        <img src="${coverUrl}" class="search-popup-cover" alt="Cover" referrerpolicy="no-referrer">
                         <div>
                             <div class="fw-bold small text-light">${escapeHtml(title)}</div>
                             <div class="text-muted text-capitalize" style="font-size:0.75rem">${m.attributes.status || 'Manga'} (${m.attributes.year || 'N/A'})</div>
@@ -482,7 +482,7 @@ function renderMangaCards(container, mangaList) {
         card.className = 'manga-card';
         card.innerHTML = `
             <div class="manga-cover-wrapper">
-                <img src="${coverUrl}" class="manga-cover" alt="${escapeHtml(title)}" loading="lazy" onerror="handleCoverFailover(this, '${mId}', '${coverFile}')">
+                <img src="${coverUrl}" class="manga-cover" alt="${escapeHtml(title)}" loading="lazy" referrerpolicy="no-referrer" onerror="handleCoverFailover(this, '${mId}', '${coverFile}')">
                 <span class="manga-badge">${status}</span>
             </div>
             <div class="manga-info">
@@ -499,34 +499,62 @@ function renderMangaCards(container, mangaList) {
     });
 }
 
-// Robust Manga Details Resolver by UUID or Title
+// Multi-Source Manga Details Resolver (CORS Encoded + Flask Fallback)
 async function loadMangaDetailsById(mangaIdOrQuery) {
     hideSearchPopup();
     if (!mangaIdOrQuery) return;
 
-    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(mangaIdOrQuery.trim());
+    const trimmed = mangaIdOrQuery.trim();
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed);
 
-    try {
-        if (isUuid) {
-            const res = await fetch(`${API_BASE}/manga/${mangaIdOrQuery.trim()}?includes[]=cover_art`);
+    // 1. Try Direct UUID fetch with encoded URL
+    if (isUuid) {
+        try {
+            const res = await fetch(`${API_BASE}/manga/${trimmed}?includes%5B%5D=cover_art`);
             const data = await res.json();
             if (data.data) {
                 loadMangaDetails(data.data);
                 return;
             }
-        }
+        } catch (e) {}
 
-        const searchRes = await fetch(`${API_BASE}/manga?title=${encodeURIComponent(mangaIdOrQuery.trim())}&limit=5&includes[]=cover_art`);
+        // 2. Try Python Flask API fallback
+        try {
+            const pyRes = await fetch(`/api/manga/${trimmed}`);
+            const pyData = await pyRes.json();
+            if (pyData.data) {
+                loadMangaDetails(pyData.data);
+                return;
+            }
+        } catch (e) {}
+    }
+
+    // 3. Title Search resolution
+    try {
+        const searchRes = await fetch(`${API_BASE}/manga?title=${encodeURIComponent(trimmed)}&limit=5&includes%5B%5D=cover_art`);
         const searchData = await searchRes.json();
         if (searchData.data && searchData.data.length > 0) {
             loadMangaDetails(searchData.data[0]);
-        } else {
-            showToast('Unable to load details for selected title.');
+            return;
         }
-    } catch (e) {
-        console.error('Failed to load manga details:', e);
-        showToast('Error loading manga details.');
-    }
+    } catch (e) {}
+
+    // 4. Python Search Fallback
+    try {
+        const pySearchRes = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
+        const pySearchData = await pySearchRes.json();
+        if (pySearchData.links && pySearchData.links.length > 0) {
+            const resolvedId = pySearchData.links[0];
+            const detailRes = await fetch(`/api/manga/${resolvedId}`);
+            const detailData = await detailRes.json();
+            if (detailData.data) {
+                loadMangaDetails(detailData.data);
+                return;
+            }
+        }
+    } catch (e) {}
+
+    showToast('Unable to load details for selected title.');
 }
 
 async function loadMangaDetails(manga) {
@@ -581,6 +609,20 @@ async function loadMangaDetails(manga) {
             state.currentChapterList = filtered;
             renderChapterList();
         } else {
+            // Fallback: load chapters from Python server API
+            try {
+                const pyFeedRes = await fetch(`/api/chapters/${mId}`);
+                const pyFeedData = await pyFeedRes.json();
+                if (pyFeedData.links && pyFeedData.links.length > 0) {
+                    state.currentChapterList = pyFeedData.links.map((link, idx) => ({
+                        id: link,
+                        attributes: { chapter: `${idx + 1}`, title: pyFeedData.titles[idx], pages: 20 }
+                    }));
+                    renderChapterList();
+                    return;
+                }
+            } catch (e) {}
+
             elements.chapterList.innerHTML = `
                 <div class="text-center py-4">
                     <p class="text-muted mb-3">No direct image chapters found for this specific edition record.</p>
@@ -602,7 +644,7 @@ async function loadRelatedSeries(currentTitle) {
     if (baseQuery.length < 3) baseQuery = currentTitle;
 
     try {
-        const url = `${API_BASE}/manga?title=${encodeURIComponent(baseQuery)}&limit=6&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
+        const url = `${API_BASE}/manga?title=${encodeURIComponent(baseQuery)}&limit=6&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const res = await fetch(url);
         const data = await res.json();
 
@@ -616,7 +658,7 @@ async function loadRelatedSeries(currentTitle) {
                     <div class="col-6 col-md-3">
                         <div class="manga-card" onclick="loadMangaDetailsById('${m.id}')">
                             <div class="manga-cover-wrapper">
-                                <img src="${coverUrl}" class="manga-cover" alt="${escapeHtml(title)}">
+                                <img src="${coverUrl}" class="manga-cover" alt="${escapeHtml(title)}" referrerpolicy="no-referrer">
                             </div>
                             <div class="manga-info p-2">
                                 <div class="manga-title small fw-bold">${escapeHtml(title)}</div>
@@ -728,6 +770,18 @@ async function loadChapter(index) {
                 elements.readerPagesContainer.innerHTML = `<div class="text-center text-muted py-5">Chapter image data unavailable.</div>`;
             }
         } else {
+            // Fallback to Flask API images endpoint
+            try {
+                const pyImgRes = await fetch(`/api/images/${chapter.id}`);
+                const pyImgData = await pyImgRes.json();
+                if (pyImgData.pages && pyImgData.pages.length > 0) {
+                    state.readerPages = pyImgData.pages.map(url => ({ primary: url, secondary: url, backup: url }));
+                    elements.pageCounter.textContent = `Total Pages: ${state.readerPages.length}`;
+                    renderPages();
+                    return;
+                }
+            } catch (e) {}
+
             elements.readerPagesContainer.innerHTML = `<div class="text-center text-muted py-5">Unable to connect to image storage server.</div>`;
         }
     } catch (err) {
@@ -739,7 +793,7 @@ async function loadChapter(index) {
 function renderPages() {
     const zoomStyle = `style="max-width: ${state.zoomLevel}%; margin: 0 auto 14px auto;"`;
     elements.readerPagesContainer.innerHTML = state.readerPages.map((page, i) => `
-        <img src="${page.primary}" class="reader-image" ${zoomStyle} alt="Page ${i + 1}" loading="lazy" onerror="handleImageFailover(this, '${page.secondary}', '${page.backup}')">
+        <img src="${page.primary}" class="reader-image" ${zoomStyle} alt="Page ${i + 1}" loading="lazy" referrerpolicy="no-referrer" onerror="handleImageFailover(this, '${page.secondary}', '${page.backup}')">
     `).join('');
 }
 
@@ -776,6 +830,7 @@ function adjustZoom(delta) {
 }
 
 function toggleFullscreen() {
+    if (!document.documentElement.requestFullscreen) return;
     if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(err => {});
     } else {
