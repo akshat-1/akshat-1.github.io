@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v13.0
- * Share Manga Links & PDF Chapter Downloader Engine
+ * Production Manga Reader Engine v14.0
+ * Pure Base64 Data URL PDF Generator & Clean Reader Navigation
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -126,6 +126,22 @@ function handleCoverFailover(img, mId, coverFile) {
     } else {
         img.setAttribute('data-failed-cover', 'true');
         img.src = `${COVER_BASE}/${mId}/${coverFile}`;
+    }
+}
+
+// Convert Image URL to Base64 Data URL (Fixes HTML5 Canvas Taint DOMException)
+async function imageUrlToBase64(url) {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (e) {
+        return null;
     }
 }
 
@@ -323,7 +339,7 @@ function shareMangaLink() {
     }
 }
 
-// Download Chapter as PDF Functionality (Powered by jsPDF)
+// Download Chapter as PDF Functionality (FileReader Base64 Conversion)
 async function downloadChapterPDF() {
     if (!state.readerPages || state.readerPages.length === 0) {
         showToast('No pages available to download.');
@@ -346,28 +362,27 @@ async function downloadChapterPDF() {
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
 
-        const imgElements = elements.readerPagesContainer.querySelectorAll('img');
-
-        for (let i = 0; i < imgElements.length; i++) {
-            const img = imgElements[i];
-            if (!img.complete || img.naturalWidth === 0) continue;
-
-            const canvas = document.createElement('canvas');
-            canvas.width = img.naturalWidth;
-            canvas.height = img.naturalHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-
-            const imgData = canvas.toDataURL('image/jpeg', 0.85);
-
-            if (i > 0) pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+        let addedPages = 0;
+        for (let i = 0; i < state.readerPages.length; i++) {
+            const pageObj = state.readerPages[i];
+            const imgUrl = typeof pageObj === 'string' ? pageObj : (pageObj.primary || pageObj.secondary || pageObj.backup);
+            
+            const base64Data = await imageUrlToBase64(imgUrl);
+            if (base64Data) {
+                if (addedPages > 0) pdf.addPage();
+                pdf.addImage(base64Data, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+                addedPages++;
+            }
         }
 
-        const cleanName = mangaTitle.replace(/[^\w\s-]/gi, '').trim();
-        const filename = `${cleanName}_Chapter_${chapNum}.pdf`;
-        pdf.save(filename);
-        showToast(`PDF Downloaded: ${filename}`);
+        if (addedPages > 0) {
+            const cleanName = mangaTitle.replace(/[^\w\s-]/gi, '').trim();
+            const filename = `${cleanName}_Chapter_${chapNum}.pdf`;
+            pdf.save(filename);
+            showToast(`PDF Downloaded: ${filename}`);
+        } else {
+            showToast('Failed to fetch image pages for PDF.');
+        }
     } catch (err) {
         console.error('PDF Generation Error:', err);
         showToast('Failed to generate PDF. Please try again.');

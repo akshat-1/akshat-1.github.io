@@ -17,8 +17,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <!-- jsPDF Engine for 1-Click Chapter PDF Downloads -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Custom CSS (v13.0 Cache-Busted) -->
-    <link rel="stylesheet" href="static/app.css?v=13.0">
+    <!-- Custom CSS (v14.0 Cache-Busted) -->
+    <link rel="stylesheet" href="static/app.css?v=14.0">
 </head>
 <body>
 
@@ -195,7 +195,7 @@
                         <div class="d-flex align-items-center gap-2">
                             <select class="form-select form-select-sm bg-dark text-light border-secondary" id="chapter-select" style="max-width: 150px;"></select>
                             
-                            <!-- Download PDF Button -->
+                            <!-- Single PDF Download Button -->
                             <button class="btn btn-outline-success btn-sm rounded-pill" onclick="downloadChapterPDF()" title="Download Chapter as PDF">
                                 <i class="fa-solid fa-file-pdf me-1"></i> Download PDF
                             </button>
@@ -250,14 +250,12 @@
 
     </main>
 
-    <!-- Floating Navigation Bar for Reader -->
+    <!-- Floating Navigation Bar for Reader (Single Clean Prev / Next Control) -->
     <div class="floating-nav d-flex align-items-center gap-3" id="reader-floating-nav" style="display: none !important;">
         <button class="btn btn-danger btn-sm rounded-circle shadow" id="prev-chap-btn" title="Previous Chapter">
             <i class="fa-solid fa-chevron-left"></i>
         </button>
-        <button class="btn btn-success btn-sm rounded-pill shadow px-3" onclick="downloadChapterPDF()" title="Download PDF">
-            <i class="fa-solid fa-file-pdf me-1"></i> PDF
-        </button>
+        <span class="small fw-bold text-light">Navigation</span>
         <button class="btn btn-danger btn-sm rounded-circle shadow" id="next-chap-btn" title="Next Chapter">
             <i class="fa-solid fa-chevron-right"></i>
         </button>
@@ -265,7 +263,7 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
-    <!-- Application JS (v13.0 Cache-Busted) -->
-    <script src="static/app.js?v=13.0"></script>
+    <!-- Application JS (v14.0 Cache-Busted) -->
+    <script src="static/app.js?v=14.0"></script>
 </body>
 </html>
