@@ -1532,21 +1532,19 @@ async function loadChapter(index) {
     let resolvedPages = [];
 
     try {
-        const res = await fetch(`${API_BASE}/at-home/server/${chapter.id}`);
-        if (res.ok) {
-            const data = await res.json();
-            if (data.chapter && data.chapter.hash) {
-                const baseUrl = data.baseUrl || 'https://uploads.mangadex.org';
-                const hash = data.chapter.hash;
-                const filenames = state.useDataSaver ? (data.chapter.dataSaver || data.chapter.data) : (data.chapter.data || data.chapter.dataSaver);
-                const saverFilenames = data.chapter.dataSaver || data.chapter.data;
+        const atHomeUrl = `${API_BASE}/at-home/server/${chapter.id}`;
+        const data = await fetchWithFallback(atHomeUrl, 10000);
+        if (data && data.chapter && data.chapter.hash) {
+            const baseUrl = data.baseUrl || 'https://uploads.mangadex.org';
+            const hash = data.chapter.hash;
+            const filenames = state.useDataSaver ? (data.chapter.dataSaver || data.chapter.data) : (data.chapter.data || data.chapter.dataSaver);
+            const saverFilenames = data.chapter.dataSaver || data.chapter.data;
 
-                resolvedPages = (filenames || []).map((f, i) => ({
-                    primary: `${UPLOADS_BASE}/${hash}/${f}`,
-                    secondary: `${UPLOADS_SAVER_BASE}/${hash}/${saverFilenames[i] || f}`,
-                    backup: `${baseUrl}/data/${hash}/${f}`
-                }));
-            }
+            resolvedPages = (filenames || []).map((f, i) => ({
+                primary: `${UPLOADS_BASE}/${hash}/${f}`,
+                secondary: `${UPLOADS_SAVER_BASE}/${hash}/${saverFilenames[i] || f}`,
+                backup: `${baseUrl}/data/${hash}/${f}`
+            }));
         }
     } catch (err) {
         console.error('Client @at-home fetch hiccup:', err);
