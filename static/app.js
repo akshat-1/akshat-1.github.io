@@ -881,11 +881,11 @@ async function loadMangaDetails(manga) {
         let offset = 0;
         let total = 1;
 
-        // 1. Fetch primary manga feed chapters (up to 20 x 500 = 10,000 items)
+        // 1. Fetch primary manga feed chapters with fallback proxies
         for (let i = 0; i < 20; i++) {
             const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&offset=${offset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
-            const res = await fetch(feedUrl);
-            const data = await res.json();
+            const data = await fetchWithFallback(feedUrl, 10000);
+            if (!data) break;
             const batch = data.data || [];
             total = data.total || 0;
             if (batch.length === 0) break;
@@ -894,25 +894,25 @@ async function loadMangaDetails(manga) {
             if (offset >= total || batch.length < 500) break;
         }
 
-        // 2. Multi-Edition Feed Merge: Fetch alternate edition feeds (e.g. Official Colored, main series)
+        // 2. Multi-Edition Feed Merge: Fetch alternate edition feeds
         try {
             const cleanTitle = title.split(/[:\-(]/)[0].trim();
             const relUrl = `${API_BASE}/manga?title=${encodeURIComponent(cleanTitle)}%20Colored&limit=5&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
-            const relRes = await fetch(relUrl);
-            const relData = await relRes.json();
-            const altList = (relData.data || []).filter(m => m.id !== mId);
-
-            for (const altManga of altList.slice(0, 2)) {
-                let altOffset = 0;
-                for (let i = 0; i < 10; i++) {
-                    const altFeedUrl = `${API_BASE}/manga/${altManga.id}/feed?limit=500&offset=${altOffset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
-                    const aRes = await fetch(altFeedUrl);
-                    const aData = await aRes.json();
-                    const aBatch = aData.data || [];
-                    if (aBatch.length === 0) break;
-                    allFeedChapters = allFeedChapters.concat(aBatch);
-                    altOffset += aBatch.length;
-                    if (altOffset >= (aData.total || 0) || aBatch.length < 500) break;
+            const relData = await fetchWithFallback(relUrl, 6000);
+            if (relData && relData.data) {
+                const altList = relData.data.filter(m => m.id !== mId);
+                for (const altManga of altList.slice(0, 2)) {
+                    let altOffset = 0;
+                    for (let i = 0; i < 10; i++) {
+                        const altFeedUrl = `${API_BASE}/manga/${altManga.id}/feed?limit=500&offset=${altOffset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
+                        const aData = await fetchWithFallback(altFeedUrl, 8000);
+                        if (!aData) break;
+                        const aBatch = aData.data || [];
+                        if (aBatch.length === 0) break;
+                        allFeedChapters = allFeedChapters.concat(aBatch);
+                        altOffset += aBatch.length;
+                        if (altOffset >= (aData.total || 0) || aBatch.length < 500) break;
+                    }
                 }
             }
         } catch (e) {
@@ -1323,15 +1323,20 @@ function filterChapterRange(minNum, maxNum, btnElement, rangeIdx) {
 
 async function loadFallbackChapters(mId, title) {
     try {
-        const pyFeedRes = await fetch(`/api/chapters/${mId}`);
-        const pyFeedData = await pyFeedRes.json();
-        if (pyFeedData.links && pyFeedData.links.length > 0) {
-            state.rawFeedChapters = pyFeedData.links.map((link, idx) => ({
-                id: link,
-                attributes: { chapter: `${idx + 1}`, title: pyFeedData.titles[idx], pages: 20, translatedLanguage: 'en' }
-            }));
-            processAndRenderChapters();
-            return;
+        const cleanQuery = title.split(/[:\-(]/)[0].trim();
+        const searchUrl = `${API_BASE}/manga?title=${encodeURIComponent(cleanQuery)}&limit=5&includes%5B%5D=cover_art`;
+        const searchData = await fetchWithFallback(searchUrl, 6000);
+        if (searchData && searchData.data && searchData.data.length > 0) {
+            const altManga = searchData.data.find(m => m.id !== mId) || searchData.data[0];
+            const feedUrl = `${API_BASE}/manga/${altManga.id}/feed?limit=500&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
+            const feedData = await fetchWithFallback(feedUrl, 8000);
+            if (feedData && feedData.data && feedData.data.length > 0) {
+                state.rawFeedChapters = feedData.data;
+                populateLanguageDropdown(feedData.data);
+                renderLanguagePills(feedData.data);
+                processAndRenderChapters();
+                return;
+            }
         }
     } catch (e) {}
 
@@ -1352,33 +1357,34 @@ async function loadRelatedSeries(currentTitle) {
 
     try {
         const url = `${API_BASE}/manga?title=${encodeURIComponent(baseQuery)}&limit=6&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        const related = (data.data || []).filter(m => m.id !== state.currentManga.id);
-        if (related.length > 0) {
-            elements.relatedGrid.innerHTML = related.slice(0, 4).map(m => {
-                const title = m.attributes.title.en || Object.values(m.attributes.title)[0] || 'Untitled';
-                const coverUrl = getCoverUrl(m, '256');
-                
-                return `
-                    <div class="col-6 col-md-3">
-                        <div class="manga-card" onclick="loadMangaDetailsById('${m.id}')">
-                            <div class="manga-cover-wrapper">
-                                <img src="${coverUrl}" class="manga-cover" alt="${escapeHtml(title)}" referrerpolicy="no-referrer">
-                            </div>
-                            <div class="manga-info p-2">
-                                <div class="manga-title small fw-bold">${escapeHtml(title)}</div>
+        const data = await fetchWithFallback(url, 6000);
+        if (data && data.data) {
+            const related = data.data.filter(m => m.id !== state.currentManga.id);
+            if (related.length > 0) {
+                elements.relatedGrid.innerHTML = related.slice(0, 4).map(m => {
+                    const title = m.attributes.title.en || Object.values(m.attributes.title)[0] || 'Untitled';
+                    const coverUrl = getCoverUrl(m, '256');
+                    
+                    return `
+                        <div class="col-6 col-md-3">
+                            <div class="manga-card" onclick="loadMangaDetailsById('${m.id}')">
+                                <div class="manga-cover-wrapper">
+                                    <img src="${coverUrl}" class="manga-cover" alt="${escapeHtml(title)}" referrerpolicy="no-referrer">
+                                </div>
+                                <div class="manga-info p-2">
+                                    <div class="manga-title small fw-bold">${escapeHtml(title)}</div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
-            elements.relatedSection.style.display = 'block';
-        } else {
-            elements.relatedSection.style.display = 'none';
+                    `;
+                }).join('');
+                elements.relatedSection.style.display = 'block';
+                return;
+            }
         }
-    } catch (e) { elements.relatedSection.style.display = 'none'; }
+    } catch (e) {}
+
+    elements.relatedSection.style.display = 'none';
 }
 
 function renderChapterList() {
