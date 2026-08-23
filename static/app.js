@@ -887,8 +887,9 @@ function processAndRenderChapters() {
         return;
     }
 
-    // Keep chapters with pages > 0 (if none, keep all)
-    let validFeed = state.rawFeedChapters.filter(c => (c.attributes && c.attributes.pages || 0) > 0);
+    // Filter out placeholder notice pages (pages <= 2), fallback to pages > 0 if needed
+    let validFeed = state.rawFeedChapters.filter(c => (c.attributes && c.attributes.pages || 0) > 2);
+    if (validFeed.length === 0) validFeed = state.rawFeedChapters.filter(c => (c.attributes && c.attributes.pages || 0) > 0);
     if (validFeed.length === 0) validFeed = state.rawFeedChapters;
 
     // Currently selected language from dropdown
@@ -995,8 +996,8 @@ function renderChapterRangePills(totalChapters) {
 
     if (maxNum <= 0) maxNum = totalChapters.length;
 
-    // Range chunk size: 50 chapters per range tab
-    const step = 50;
+    // Range chunk size: 100 chapters for long manga series (>100 ch), 50 for shorter series
+    const step = maxNum > 100 ? 100 : 50;
     const rangePills = [];
 
     for (let start = 1; start <= maxNum; start += step) {

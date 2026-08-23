@@ -282,7 +282,9 @@ def get_chapters(manga_id_or_url: str):
             else:
                 break
 
-        readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
+        readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 2]
+        if not readable:
+            readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
         if not readable:
             readable = data
 
