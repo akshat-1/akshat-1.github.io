@@ -260,28 +260,29 @@ def get_chapters(manga_id_or_url: str):
         data = []
         offset = 0
 
-        # Paginate offset up to 5000 items (10 x 500 batch requests)
-        for _ in range(10):
+        # Paginate offset up to 10,000 items (20 x 500 batch requests)
+        for _ in range(20):
             params = {
                 "limit": 500,
                 "offset": offset,
-                "order[chapter]": "asc"
+                "order[chapter]": "asc",
+                "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
             }
             res = requests.get(url, params=params, headers=HEADERS, timeout=10)
             if res.status_code == 200:
-                batch = res.json().get("data", [])
+                body = res.json()
+                batch = body.get("data", [])
+                total = body.get("total", 0)
                 if not batch:
                     break
                 data.extend(batch)
                 offset += len(batch)
-                if len(batch) < 500:
+                if offset >= total or len(batch) < 500:
                     break
             else:
                 break
 
-        readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 2]
-        if not readable:
-            readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
+        readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
         if not readable:
             readable = data
 
@@ -290,9 +291,20 @@ def get_chapters(manga_id_or_url: str):
             attr = ch.get("attributes", {})
             chap_num_raw = attr.get("chapter") or "Extra"
             chap_num_val = parse_chapter_num(chap_num_raw)
-            
+            lang = (attr.get("translatedLanguage") or "en").lower()
+            pages = attr.get("pages", 0)
+
             if chap_num_raw not in chapters_dict:
                 chapters_dict[chap_num_raw] = (chap_num_val, ch)
+            else:
+                existing_ch = chapters_dict[chap_num_raw][1]
+                existing_attr = existing_ch.get("attributes", {})
+                existing_lang = (existing_attr.get("translatedLanguage") or "en").lower()
+                existing_pages = existing_attr.get("pages", 0)
+                if lang == "en" and existing_lang != "en":
+                    chapters_dict[chap_num_raw] = (chap_num_val, ch)
+                elif lang == existing_lang and pages > existing_pages:
+                    chapters_dict[chap_num_raw] = (chap_num_val, ch)
 
         sorted_chapters = sorted(chapters_dict.values(), key=lambda x: x[0])
 

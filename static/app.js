@@ -27,9 +27,11 @@ const state = {
     currentView: 'home',
     heroManga: null,
     currentManga: null,
+    rawFeedChapters: [],
     allChapterList: [],
     currentChapterList: [],
     currentChapterIndex: -1,
+    activeRange: { min: 1, max: 50 },
     chapterSortAsc: true,
     readerMode: 'vertical',
     readerTheme: 'dark',
@@ -281,7 +283,7 @@ function setupEventListeners() {
     }
 
     if (elements.chapterLangSelect) {
-        elements.chapterLangSelect.addEventListener('change', () => filterChapterList());
+        elements.chapterLangSelect.addEventListener('change', () => processAndRenderChapters());
     }
 
     elements.prevChapBtn.addEventListener('click', () => navigateChapter(-1));
@@ -849,57 +851,25 @@ async function loadMangaDetails(manga) {
     try {
         let allFeedChapters = [];
         let offset = 0;
+        let total = 1;
 
-        // Loop offset pagination until all feed chapters are fetched (up to 5000 items)
-        for (let i = 0; i < 10; i++) {
-            const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&offset=${offset}&order%5Bchapter%5D=asc`;
+        // Loop offset pagination until ALL feed chapters are fetched (up to 20 x 500 = 10,000 items)
+        for (let i = 0; i < 20; i++) {
+            const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&offset=${offset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
             const res = await fetch(feedUrl);
             const data = await res.json();
             const batch = data.data || [];
+            total = data.total || 0;
             if (batch.length === 0) break;
             allFeedChapters = allFeedChapters.concat(batch);
             offset += batch.length;
-            if (batch.length < 500) break;
+            if (offset >= total || batch.length < 500) break;
         }
 
-        let readable = allFeedChapters.filter(c => (c.attributes.pages || 0) > 2);
-        if (readable.length === 0) readable = allFeedChapters.filter(c => (c.attributes.pages || 0) > 0);
-        if (readable.length === 0) readable = allFeedChapters;
+        state.rawFeedChapters = allFeedChapters;
 
-        if (readable.length > 0) {
-            readable.sort((a, b) => {
-                const numA = parseFloat(a.attributes.chapter) || 99999;
-                const numB = parseFloat(b.attributes.chapter) || 99999;
-                return numA - numB;
-            });
-
-            const seen = new Set();
-            const filtered = [];
-            readable.forEach(ch => {
-                const num = ch.attributes.chapter || 'Extra';
-                if (!seen.has(num)) {
-                    seen.add(num);
-                    filtered.push(ch);
-                }
-            });
-
-            state.allChapterList = filtered;
-
-            // Default to Ch 1-100 chunk for long manga (>50 chaps) so 1000+ chapters aren't all dumped at once
-            if (filtered.length > 50) {
-                state.currentChapterList = filtered.filter(c => {
-                    const num = parseFloat(c.attributes.chapter) || 0;
-                    return num >= 1 && num <= 100;
-                });
-                if (state.currentChapterList.length === 0) {
-                    state.currentChapterList = filtered.slice(0, 100);
-                }
-            } else {
-                state.currentChapterList = filtered;
-            }
-
-            renderChapterRangePills(filtered);
-            renderChapterList();
+        if (allFeedChapters.length > 0) {
+            processAndRenderChapters();
         } else {
             await loadFallbackChapters(mId, title);
         }
@@ -909,63 +879,209 @@ async function loadMangaDetails(manga) {
     }
 }
 
-// Interactive Chapter Range Selector Box Generator (Ch 1-100, 101-200... 1100-1200)
+// Process raw chapters into language-deduplicated list and render range tabs
+function processAndRenderChapters() {
+    if (!state.rawFeedChapters || state.rawFeedChapters.length === 0) {
+        elements.chapterList.innerHTML = `<div class="text-center text-muted py-4">No chapters found for this title.</div>`;
+        if (elements.chapterRangeBox) elements.chapterRangeBox.style.display = 'none';
+        return;
+    }
+
+    // Keep chapters with pages > 0 (if none, keep all)
+    let validFeed = state.rawFeedChapters.filter(c => (c.attributes && c.attributes.pages || 0) > 0);
+    if (validFeed.length === 0) validFeed = state.rawFeedChapters;
+
+    // Currently selected language from dropdown
+    const selectedLang = (elements.chapterLangSelect ? elements.chapterLangSelect.value : 'all').toLowerCase();
+
+    const groupedMap = new Map();
+
+    validFeed.forEach(ch => {
+        const attr = ch.attributes || {};
+        const chLang = (attr.translatedLanguage || 'en').toLowerCase();
+
+        // Skip if a specific language is selected and this chapter is not in that language
+        if (selectedLang !== 'all' && chLang !== selectedLang) {
+            return;
+        }
+
+        const chNumStr = (attr.chapter !== null && attr.chapter !== undefined && String(attr.chapter).trim() !== '') 
+            ? String(attr.chapter).trim() 
+            : 'Extra';
+
+        if (!groupedMap.has(chNumStr)) {
+            groupedMap.set(chNumStr, ch);
+        } else {
+            const existing = groupedMap.get(chNumStr);
+            const existingLang = (existing.attributes && existing.attributes.translatedLanguage || 'en').toLowerCase();
+            const existingPages = (existing.attributes && existing.attributes.pages) || 0;
+            const newPages = attr.pages || 0;
+
+            let isBetter = false;
+            if (selectedLang === 'all') {
+                // When 'all' is selected, prioritize English ('en')
+                if (chLang === 'en' && existingLang !== 'en') {
+                    isBetter = true;
+                } else if (chLang === existingLang && newPages > existingPages) {
+                    isBetter = true;
+                }
+            } else {
+                // When specific language selected, prefer higher page count
+                if (newPages > existingPages) {
+                    isBetter = true;
+                }
+            }
+
+            if (isBetter) {
+                groupedMap.set(chNumStr, ch);
+            }
+        }
+    });
+
+    // If selected language had 0 matching chapters, fallback to all available chapters
+    if (groupedMap.size === 0 && selectedLang !== 'all') {
+        showToast(`No chapters found in selected language. Showing all languages.`);
+        validFeed.forEach(ch => {
+            const attr = ch.attributes || {};
+            const chNumStr = (attr.chapter !== null && attr.chapter !== undefined && String(attr.chapter).trim() !== '') 
+                ? String(attr.chapter).trim() 
+                : 'Extra';
+            if (!groupedMap.has(chNumStr)) {
+                groupedMap.set(chNumStr, ch);
+            }
+        });
+    }
+
+    let processedList = Array.from(groupedMap.values());
+
+    // Sort numerically by chapter number float
+    processedList.sort((a, b) => {
+        const parseNum = (c) => {
+            if (!c.attributes || c.attributes.chapter === null || c.attributes.chapter === undefined) return 999999;
+            const val = parseFloat(c.attributes.chapter);
+            return isNaN(val) ? 999999 : val;
+        };
+        return parseNum(a) - parseNum(b);
+    });
+
+    state.allChapterList = processedList;
+
+    renderChapterRangePills(processedList);
+}
+
+// Interactive Chapter Range Selector Box Generator (Ch 1-50, 51-100, 101-150...)
 function renderChapterRangePills(totalChapters) {
     elements.chapterRangeBox = document.getElementById('chapter-range-box');
     elements.chapterRangePills = document.getElementById('chapter-range-pills');
 
     if (!elements.chapterRangeBox || !elements.chapterRangePills) return;
 
-    if (totalChapters.length <= 30) {
+    if (!totalChapters || totalChapters.length === 0) {
         elements.chapterRangeBox.style.display = 'none';
+        elements.chapterList.innerHTML = `<div class="text-center text-muted py-4">No chapters available.</div>`;
         return;
     }
 
+    // Find max chapter float number
     let maxNum = 0;
     totalChapters.forEach(c => {
-        const num = parseFloat(c.attributes.chapter) || 0;
-        if (num > maxNum && num < 99999) maxNum = num;
+        if (c.attributes && c.attributes.chapter !== null && c.attributes.chapter !== undefined) {
+            const num = parseFloat(c.attributes.chapter);
+            if (!isNaN(num) && num > maxNum && num < 99999) {
+                maxNum = num;
+            }
+        }
     });
 
+    if (maxNum <= 0) maxNum = totalChapters.length;
+
+    // Range chunk size: 50 chapters per range tab
+    const step = 50;
     const rangePills = [];
-    const step = 100;
-    
+
     for (let start = 1; start <= maxNum; start += step) {
         const end = start + step - 1;
+        const count = totalChapters.filter(c => {
+            if (!c.attributes || c.attributes.chapter === null || c.attributes.chapter === undefined) return false;
+            const num = parseFloat(c.attributes.chapter);
+            return !isNaN(num) && num >= start && num <= end;
+        }).length;
+
+        if (count > 0 || start === 1) {
+            rangePills.push({
+                label: `Ch. ${start} - ${end}`,
+                min: start,
+                max: end,
+                count: count
+            });
+        }
+    }
+
+    // Add 'Show All' pill if there's more than 1 range tab
+    if (rangePills.length > 1) {
         rangePills.push({
-            label: `Ch. ${start} - ${end}`,
-            min: start,
-            max: end
+            label: `Show All (${totalChapters.length})`,
+            min: 0,
+            max: 999999,
+            count: totalChapters.length
         });
     }
 
-    rangePills.push({ label: `Show All (${totalChapters.length})`, min: 0, max: 999999 });
+    // Check history to default to the range containing the user's last read chapter
+    const history = getHistory();
+    const currentMangaHistory = (state.currentManga && history[state.currentManga.id]) ? history[state.currentManga.id] : null;
+    let initialRangeIndex = 0;
+
+    if (currentMangaHistory && currentMangaHistory.lastChapterNum) {
+        const lastNum = parseFloat(currentMangaHistory.lastChapterNum);
+        if (!isNaN(lastNum)) {
+            const foundIdx = rangePills.findIndex(r => r.min <= lastNum && lastNum <= r.max);
+            if (foundIdx !== -1) initialRangeIndex = foundIdx;
+        }
+    }
 
     elements.chapterRangePills.innerHTML = rangePills.map((r, idx) => `
-        <button class="genre-pill ${idx === 0 ? 'active' : ''}" onclick="filterChapterRange(${r.min}, ${r.max}, this)">
+        <button class="genre-pill ${idx === initialRangeIndex ? 'active' : ''}" onclick="filterChapterRange(${r.min}, ${r.max}, this)">
             ${r.label}
         </button>
     `).join('');
 
     elements.chapterRangeBox.style.display = 'block';
+
+    const initRange = rangePills[initialRangeIndex] || rangePills[0];
+    filterChapterRange(initRange.min, initRange.max, elements.chapterRangePills.children[initialRangeIndex]);
 }
 
 function filterChapterRange(minNum, maxNum, btnElement) {
-    const buttons = elements.chapterRangePills.querySelectorAll('.genre-pill');
-    buttons.forEach(b => b.classList.remove('active'));
-    if (btnElement) btnElement.classList.add('active');
+    if (btnElement && elements.chapterRangePills) {
+        const buttons = elements.chapterRangePills.querySelectorAll('.genre-pill');
+        buttons.forEach(b => b.classList.remove('active'));
+        btnElement.classList.add('active');
+    }
+
+    state.activeRange = { min: minNum, max: maxNum };
 
     if (minNum === 0 && maxNum === 999999) {
         state.currentChapterList = [...state.allChapterList];
     } else {
         state.currentChapterList = state.allChapterList.filter(c => {
-            const num = parseFloat(c.attributes.chapter) || 0;
-            return num >= minNum && num <= maxNum;
+            if (!c.attributes || c.attributes.chapter === null || c.attributes.chapter === undefined) return false;
+            const num = parseFloat(c.attributes.chapter);
+            return !isNaN(num) && num >= minNum && num <= maxNum;
         });
 
-        // Fallback to slice if chapter numbers aren't numeric float strings
-        if (state.currentChapterList.length === 0) {
-            state.currentChapterList = state.allChapterList.slice(minNum - 1, maxNum);
+        // Fallback slice if float parsing returned empty
+        if (state.currentChapterList.length === 0 && state.allChapterList.length > 0) {
+            state.currentChapterList = state.allChapterList.slice(Math.max(0, minNum - 1), maxNum);
+        }
+    }
+
+    const rangeInfo = document.getElementById('chapter-range-info');
+    if (rangeInfo) {
+        if (minNum === 0) {
+            rangeInfo.textContent = `Showing all ${state.allChapterList.length} chapters`;
+        } else {
+            rangeInfo.textContent = `Showing ${state.currentChapterList.length} of ${state.allChapterList.length} chapters`;
         }
     }
 
@@ -977,11 +1093,11 @@ async function loadFallbackChapters(mId, title) {
         const pyFeedRes = await fetch(`/api/chapters/${mId}`);
         const pyFeedData = await pyFeedRes.json();
         if (pyFeedData.links && pyFeedData.links.length > 0) {
-            state.currentChapterList = pyFeedData.links.map((link, idx) => ({
+            state.rawFeedChapters = pyFeedData.links.map((link, idx) => ({
                 id: link,
-                attributes: { chapter: `${idx + 1}`, title: pyFeedData.titles[idx], pages: 20 }
+                attributes: { chapter: `${idx + 1}`, title: pyFeedData.titles[idx], pages: 20, translatedLanguage: 'en' }
             }));
-            renderChapterList();
+            processAndRenderChapters();
             return;
         }
     } catch (e) {}
@@ -1042,10 +1158,10 @@ function renderChapterList() {
     if (!state.chapterSortAsc) list.reverse();
 
     const history = getHistory();
-    const currentMangaHistory = history[state.currentManga.id] || {};
+    const currentMangaHistory = (state.currentManga && history[state.currentManga.id]) ? history[state.currentManga.id] : {};
 
     elements.chapterList.innerHTML = list.map((ch) => {
-        const origIndex = state.currentChapterList.findIndex(c => c.id === ch.id);
+        const globalIndex = state.allChapterList.findIndex(c => c.id === ch.id);
         const num = ch.attributes.chapter || 'Extra';
         const title = ch.attributes.title ? `: ${ch.attributes.title}` : '';
         const lang = (ch.attributes.translatedLanguage || 'EN').toUpperCase();
@@ -1053,7 +1169,7 @@ function renderChapterList() {
         const isRead = currentMangaHistory.readChapters && currentMangaHistory.readChapters.includes(ch.id);
 
         return `
-            <a href="#" class="chapter-item ${isRead ? 'read' : ''}" data-lang="${lang}" onclick="event.preventDefault(); loadChapter(${origIndex});">
+            <a href="#" class="chapter-item ${isRead ? 'read' : ''}" data-lang="${lang}" onclick="event.preventDefault(); loadChapter(${globalIndex !== -1 ? globalIndex : 0});">
                 <div>
                     <i class="fa-regular fa-file-lines me-2 text-danger"></i>
                     <strong>Chapter ${num}</strong>${escapeHtml(title)} <span class="badge bg-dark ms-1">${lang}</span>${pagesCount}
@@ -1062,16 +1178,18 @@ function renderChapterList() {
             </a>
         `;
     }).join('');
+
+    filterChapterList();
 }
 
 function filterChapterList() {
     const query = elements.chapterSearch ? elements.chapterSearch.value.toLowerCase() : '';
-    const selectedLang = elements.chapterLangSelect ? elements.chapterLangSelect.value : 'all';
+    const selectedLang = elements.chapterLangSelect ? elements.chapterLangSelect.value.toLowerCase() : 'all';
     
     const items = elements.chapterList.querySelectorAll('.chapter-item');
     items.forEach(item => {
         const text = item.textContent.toLowerCase();
-        const itemLang = item.getAttribute('data-lang') || '';
+        const itemLang = (item.getAttribute('data-lang') || '').toLowerCase();
         
         const matchesQuery = text.includes(query);
         const matchesLang = selectedLang === 'all' || itemLang === selectedLang;
@@ -1082,23 +1200,24 @@ function filterChapterList() {
 
 // Load Reader View
 async function loadChapter(index) {
-    if (index < 0 || index >= state.currentChapterList.length) return;
+    if (!state.allChapterList || state.allChapterList.length === 0) return;
+    if (index < 0 || index >= state.allChapterList.length) return;
     
     state.currentChapterIndex = index;
-    const chapter = state.currentChapterList[index];
+    const chapter = state.allChapterList[index];
     const chNum = chapter.attributes.chapter || 'Extra';
     const chTitle = chapter.attributes.title || '';
 
-    const mangaTitle = state.currentManga.attributes.title.en || Object.values(state.currentManga.attributes.title)[0];
+    const mangaTitle = state.currentManga ? ((state.currentManga.attributes.title && (state.currentManga.attributes.title.en || Object.values(state.currentManga.attributes.title)[0])) || 'Manga') : 'Manga';
     elements.readerMangaTitle.textContent = mangaTitle;
     elements.readerChapterTitle.textContent = `Chapter ${chNum}${chTitle ? ': ' + chTitle : ''}`;
 
-    elements.chapterSelect.innerHTML = state.currentChapterList.map((c, i) => `
+    elements.chapterSelect.innerHTML = state.allChapterList.map((c, i) => `
         <option value="${i}" ${i === index ? 'selected' : ''}>Chapter ${c.attributes.chapter || 'Extra'}</option>
     `).join('');
 
     elements.prevChapBtn.disabled = index === 0;
-    elements.nextChapBtn.disabled = index === state.currentChapterList.length - 1;
+    elements.nextChapBtn.disabled = index === state.allChapterList.length - 1;
 
     showView('reader');
     elements.readerPagesContainer.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-3 text-muted">Loading high-speed pages...</div></div>`;
@@ -1182,7 +1301,7 @@ function handleImageFailover(img, secondaryUrl, backupUrl) {
 
 function navigateChapter(direction) {
     const newIdx = state.currentChapterIndex + direction;
-    if (newIdx >= 0 && newIdx < state.currentChapterList.length) {
+    if (newIdx >= 0 && newIdx < state.allChapterList.length) {
         loadChapter(newIdx);
     }
 }
