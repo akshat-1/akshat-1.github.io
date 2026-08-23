@@ -1,5 +1,6 @@
 import requests
 import urllib.parse
+import re
 
 BASE_MANGADEX = "https://api.mangadex.org"
 COVER_BASE = "https://uploads.mangadex.org/covers"
@@ -8,12 +9,24 @@ HEADERS = {
 }
 
 def search_(query: str) -> str:
-    """Format query into string."""
+    """Format query string."""
     return query.strip()
+
+def parse_chapter_num(chap_str):
+    """Safely extract float chapter number for sorting."""
+    if not chap_str:
+        return 999999.0
+    match = re.search(r"(\d+(\.\d+)?)", str(chap_str))
+    if match:
+        try:
+            return float(match.group(1))
+        except ValueError:
+            return 999999.0
+    return 999999.0
 
 def get_search_result(query_or_url: str):
     """
-    Search manga using MangaDex API with smart ranking & fallback.
+    Search manga using MangaDex API with smart ranking & variant failover.
     Returns: (list_of_titles, list_of_ids, list_of_cover_urls)
     """
     titles = []
@@ -27,13 +40,13 @@ def get_search_result(query_or_url: str):
         query = query_or_url.replace("_", " ")
 
     if not query:
-        query = "popular"
+        query = "Dragon Ball"
 
     try:
         url = f"{BASE_MANGADEX}/manga"
         params = {
             "title": query,
-            "limit": 20,
+            "limit": 25,
             "includes[]": ["cover_art"],
             "order[followedCount]": "desc",
             "contentRating[]": ["safe", "suggestive"]
@@ -41,13 +54,11 @@ def get_search_result(query_or_url: str):
         res = requests.get(url, params=params, headers=HEADERS, timeout=10)
         items = res.json().get("data", []) if res.status_code == 200 else []
 
-        # If primary search returned no results, try broader search
         if not items:
             params.pop("title", None)
             res = requests.get(url, params=params, headers=HEADERS, timeout=10)
             items = res.json().get("data", []) if res.status_code == 200 else []
 
-        # Rank results: Prioritize entries with active feeds
         ranked = []
         for item in items:
             m_id = item.get("id")
@@ -66,12 +77,12 @@ def get_search_result(query_or_url: str):
                 else "https://via.placeholder.com/200x300?text=No+Cover"
             )
 
-            # Quick check feed for readable chapters count
+            # Quick feed verification for active pages count
             readable_count = 0
             try:
                 f_res = requests.get(
                     f"{BASE_MANGADEX}/manga/{m_id}/feed",
-                    params={"limit": 20, "order[chapter]": "asc"},
+                    params={"limit": 50, "order[chapter]": "asc"},
                     headers=HEADERS,
                     timeout=3
                 )
@@ -88,7 +99,7 @@ def get_search_result(query_or_url: str):
                 "readable_count": readable_count
             })
 
-        # Sort: Titles with readable pages first
+        # Sort entries: items with readable pages first
         ranked.sort(key=lambda x: x["readable_count"], reverse=True)
 
         for r in ranked:
@@ -97,13 +108,13 @@ def get_search_result(query_or_url: str):
             imgs.append(r["cover"])
 
     except Exception as e:
-        print(f"Error fetching search results: {e}")
+        print(f"Error in get_search_result: {e}")
 
     return titles, links, imgs
 
 def get_chapters(manga_id_or_url: str):
     """
-    Fetch readable chapter list for a given manga with smart edition fallback.
+    Fetch readable chapter list sorted numerically (Chapter 1, 2, 3... 14) with multi-language fallback.
     Returns: (list_of_chapter_ids, list_of_chapter_titles)
     """
     links = []
@@ -114,27 +125,20 @@ def get_chapters(manga_id_or_url: str):
         manga_id = manga_id.rstrip("/").split("/")[-1]
 
     try:
-        # Step 1: Fetch English feed
         url = f"{BASE_MANGADEX}/manga/{manga_id}/feed"
         params = {
-            "translatedLanguage[]": ["en"],
-            "order[chapter]": "asc",
-            "limit": 500
+            "limit": 500,
+            "order[chapter]": "asc"
         }
         res = requests.get(url, params=params, headers=HEADERS, timeout=10)
         data = res.json().get("data", []) if res.status_code == 200 else []
+
+        # Filter chapters with pages > 0
         readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
-
-        # Step 2: Fallback to all languages if EN direct pages are 0
         if not readable:
-            params.pop("translatedLanguage[]", None)
-            res_all = requests.get(url, params=params, headers=HEADERS, timeout=10)
-            data_all = res_all.json().get("data", []) if res_all.status_code == 200 else []
-            readable = [ch for ch in data_all if ch.get("attributes", {}).get("pages", 0) > 0]
-            if not readable:
-                readable = data_all
+            readable = data
 
-        # Step 3: If still empty, search for alternative colored/fan edition of the same manga title
+        # If empty, search related colored/digital series
         if not readable:
             m_res = requests.get(f"{BASE_MANGADEX}/manga/{manga_id}", headers=HEADERS, timeout=5)
             if m_res.status_code == 200:
@@ -142,46 +146,57 @@ def get_chapters(manga_id_or_url: str):
                 if m_title:
                     alt_res = requests.get(
                         f"{BASE_MANGADEX}/manga",
-                        params={"title": f"{m_title} colored", "limit": 3, "includes[]": ["cover_art"]},
+                        params={"title": m_title, "limit": 5, "includes[]": ["cover_art"]},
                         headers=HEADERS,
                         timeout=5
                     )
                     alt_data = alt_res.json().get("data", []) if alt_res.status_code == 200 else []
-                    if alt_data:
-                        alt_id = alt_data[0]["id"]
-                        alt_feed = requests.get(
-                            f"{BASE_MANGADEX}/manga/{alt_id}/feed",
-                            params={"limit": 500, "order[chapter]": "asc"},
-                            headers=HEADERS,
-                            timeout=5
-                        ).json().get("data", [])
-                        readable = [ch for ch in alt_feed if ch.get("attributes", {}).get("pages", 0) > 0]
+                    for alt in alt_data:
+                        if alt["id"] != manga_id:
+                            alt_feed = requests.get(
+                                f"{BASE_MANGADEX}/manga/{alt['id']}/feed",
+                                params={"limit": 500, "order[chapter]": "asc"},
+                                headers=HEADERS,
+                                timeout=5
+                            ).json().get("data", [])
+                            alt_readable = [c for c in alt_feed if c.get("attributes", {}).get("pages", 0) > 0]
+                            if alt_readable:
+                                readable = alt_readable
+                                break
 
-        seen_chapters = set()
+        # Deduplicate and sort numerically by chapter number
+        chapters_dict = {}
         for ch in readable:
+            attr = ch.get("attributes", {})
+            chap_num_raw = attr.get("chapter") or "Extra"
+            chap_num_val = parse_chapter_num(chap_num_raw)
+            
+            # Keep earliest or highest page count chapter for each chapter number
+            if chap_num_raw not in chapters_dict:
+                chapters_dict[chap_num_raw] = (chap_num_val, ch)
+
+        sorted_chapters = sorted(chapters_dict.values(), key=lambda x: x[0])
+
+        for num_val, ch in sorted_chapters:
             ch_id = ch.get("id")
             attr = ch.get("attributes", {})
             chap_num = attr.get("chapter") or "Extra"
-            lang = attr.get("translatedLanguage", "en").upper()
-
-            if chap_num in seen_chapters and chap_num != "Extra":
-                continue
-            seen_chapters.add(chap_num)
-
             chap_title = attr.get("title") or ""
-            display_name = f"Chapter {chap_num}" + (f": {chap_title}" if chap_title else "") + f" [{lang}]"
+            lang = (attr.get("translatedLanguage") or "en").upper()
+            pages = attr.get("pages", 0)
 
+            display_name = f"Chapter {chap_num}" + (f": {chap_title}" if chap_title else "") + f" [{lang}] ({pages} pgs)"
             links.append(ch_id)
             titles.append(display_name)
 
     except Exception as e:
-        print(f"Error fetching chapters: {e}")
+        print(f"Error in get_chapters: {e}")
 
     return links, titles
 
 def get_images(chapter_id_or_url: str) -> list:
     """
-    Fetch page image URLs for a chapter.
+    Fetch page image URLs with primary and dataSaver fallback array support.
     Returns: list of image URLs
     """
     pages = []
@@ -198,15 +213,15 @@ def get_images(chapter_id_or_url: str) -> list:
             chapter_data = data.get("chapter", {})
             hash_val = chapter_data.get("hash")
             filenames = chapter_data.get("data", [])
-            data_saver_filenames = chapter_data.get("dataSaver", [])
+            saver_filenames = chapter_data.get("dataSaver", [])
 
-            target_files = filenames if filenames else data_saver_filenames
+            target_files = filenames if filenames else saver_filenames
             subfolder = "data" if filenames else "data-saver"
 
             if base_url and hash_val and target_files:
                 for fname in target_files:
                     pages.append(f"{base_url}/{subfolder}/{hash_val}/{fname}")
     except Exception as e:
-        print(f"Error fetching chapter images: {e}")
+        print(f"Error in get_images: {e}")
 
     return pages

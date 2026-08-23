@@ -1,23 +1,26 @@
-/* Professional Dark Theme Manga Reader Styles */
+/* Production Obsidian Dark Manga Reader Styling */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 :root {
-    --bg-dark: #0d0e12;
-    --bg-surface: #16181e;
-    --bg-card: #1c1f26;
-    --bg-card-hover: #262a34;
+    --bg-dark: #090a0f;
+    --bg-surface: #12141c;
+    --bg-card: #181b26;
+    --bg-card-hover: #222636;
     --accent: #ff4757;
     --accent-hover: #ff6b81;
-    --accent-glow: rgba(255, 71, 87, 0.3);
+    --accent-glow: rgba(255, 71, 87, 0.35);
+    --gold: #ffa502;
     --text-primary: #f8f9fa;
-    --text-secondary: #9da5b4;
+    --text-secondary: #9aa0b4;
     --border-color: rgba(255, 255, 255, 0.08);
-    --glass-bg: rgba(22, 24, 30, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-bg: rgba(18, 20, 28, 0.88);
+    --glass-border: rgba(255, 255, 255, 0.12);
 }
 
 body {
     background-color: var(--bg-dark);
     color: var(--text-primary);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
 }
@@ -25,26 +28,26 @@ body {
 /* Glassmorphism Navbar */
 .navbar {
     background: var(--glass-bg) !important;
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--glass-border);
-    padding: 0.8rem 0;
+    padding: 0.85rem 0;
     transition: all 0.3s ease;
 }
 
 .navbar-brand {
     font-weight: 800;
-    font-size: 1.5rem;
-    letter-spacing: -0.5px;
+    font-size: 1.55rem;
+    letter-spacing: -0.6px;
     background: linear-gradient(135deg, #ff4757 0%, #ffa502 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
-/* Search Bar */
+/* Search Container & Autocomplete */
 .search-container {
     position: relative;
-    max-width: 450px;
+    max-width: 480px;
     width: 100%;
 }
 
@@ -63,7 +66,7 @@ body {
     background-color: rgba(255, 255, 255, 0.12);
     border-color: var(--accent);
     color: var(--text-primary);
-    box-shadow: 0 0 20px var(--accent-glow);
+    box-shadow: 0 0 25px var(--accent-glow);
 }
 
 .search-icon {
@@ -72,7 +75,6 @@ body {
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-secondary);
-    font-size: 0.9rem;
 }
 
 .search-clear {
@@ -83,53 +85,86 @@ body {
     color: var(--text-secondary);
     cursor: pointer;
     display: none;
-    transition: color 0.2s ease;
 }
 
-.search-clear:hover {
-    color: var(--accent);
+/* Search Autocomplete Popup */
+.search-results-popup {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    width: 100%;
+    background: var(--bg-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+    max-height: 400px;
+    overflow-y: auto;
+    z-index: 2000;
+    display: none;
 }
 
-/* Hero Banner */
+.search-popup-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.search-popup-item:hover {
+    background-color: rgba(255, 71, 87, 0.12);
+}
+
+.search-popup-cover {
+    width: 40px;
+    height: 55px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-right: 12px;
+}
+
+/* Hero Spotlight Banner */
 .hero-banner {
     position: relative;
-    border-radius: 20px;
+    border-radius: 24px;
     overflow: hidden;
-    background: linear-gradient(135deg, #1f1c2c 0%, #928dab 100%);
+    background: linear-gradient(135deg, #181c2b 0%, #2a1b3d 100%);
     margin-bottom: 2.5rem;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
     border: 1px solid var(--glass-border);
 }
 
 .hero-overlay {
-    background: linear-gradient(90deg, rgba(13, 14, 18, 0.95) 0%, rgba(13, 14, 18, 0.7) 60%, rgba(13, 14, 18, 0.2) 100%);
-    padding: 3rem 2.5rem;
+    background: linear-gradient(90deg, rgba(9, 10, 15, 0.96) 0%, rgba(9, 10, 15, 0.75) 55%, rgba(9, 10, 15, 0.2) 100%);
+    padding: 3.5rem 3rem;
 }
 
 .hero-title {
-    font-size: 2.4rem;
+    font-size: 2.6rem;
     font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 0.8rem;
+    line-height: 1.15;
+    margin-bottom: 0.9rem;
+    letter-spacing: -0.5px;
 }
 
 .hero-description {
     color: var(--text-secondary);
-    font-size: 0.95rem;
-    max-width: 600px;
-    margin-bottom: 1.5rem;
+    font-size: 0.98rem;
+    max-width: 620px;
+    margin-bottom: 1.8rem;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
-/* Genre Pills */
+/* Genre & Franchise Filter Pills */
 .genre-pills {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.6rem;
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.6rem;
     scrollbar-width: none;
 }
 
@@ -138,26 +173,26 @@ body {
 }
 
 .genre-pill {
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
-    padding: 0.4rem 1.1rem;
-    border-radius: 20px;
+    padding: 0.45rem 1.2rem;
+    border-radius: 25px;
     font-size: 0.85rem;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s ease;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .genre-pill:hover, .genre-pill.active {
-    background: var(--accent);
+    background: linear-gradient(135deg, #ff4757 0%, #ff6b81 100%);
     color: #fff;
     border-color: var(--accent);
-    box-shadow: 0 4px 15px var(--accent-glow);
+    box-shadow: 0 6px 20px var(--accent-glow);
 }
 
-/* Manga Cards Grid */
+/* Manga Grid */
 .manga-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
@@ -166,7 +201,7 @@ body {
 
 .manga-card {
     background-color: var(--bg-card);
-    border-radius: 14px;
+    border-radius: 16px;
     overflow: hidden;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
@@ -178,7 +213,7 @@ body {
 
 .manga-card:hover {
     transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6), 0 0 20px var(--accent-glow);
+    box-shadow: 0 18px 35px rgba(0, 0, 0, 0.7), 0 0 25px var(--accent-glow);
     border-color: var(--accent);
     background-color: var(--bg-card-hover);
 }
@@ -188,7 +223,7 @@ body {
     width: 100%;
     padding-top: 145%;
     overflow: hidden;
-    background-color: #1a1c23;
+    background-color: #12141c;
 }
 
 .manga-cover {
@@ -209,15 +244,14 @@ body {
     position: absolute;
     top: 10px;
     right: 10px;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(8px);
     color: #fff;
-    padding: 3px 8px;
+    padding: 3px 9px;
     border-radius: 8px;
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 .manga-info {
@@ -251,25 +285,25 @@ body {
 /* Detail View */
 .manga-detail-header {
     background: var(--bg-surface);
-    border-radius: 20px;
-    padding: 2rem;
+    border-radius: 24px;
+    padding: 2.2rem;
     margin-bottom: 2rem;
     border: 1px solid var(--glass-border);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
 }
 
 .detail-cover {
     width: 100%;
-    max-width: 240px;
-    border-radius: 16px;
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.6);
+    max-width: 250px;
+    border-radius: 18px;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
     border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .chapter-list-container {
     background-color: var(--bg-surface);
-    border-radius: 20px;
-    padding: 1.5rem;
+    border-radius: 24px;
+    padding: 1.8rem;
     border: 1px solid var(--glass-border);
 }
 
@@ -277,9 +311,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.9rem 1.2rem;
+    padding: 0.95rem 1.25rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 10px;
+    border-radius: 12px;
     text-decoration: none;
     color: var(--text-primary);
     transition: all 0.2s ease;
@@ -287,52 +321,52 @@ body {
 }
 
 .chapter-item:hover {
-    background-color: rgba(255, 71, 87, 0.12);
+    background-color: rgba(255, 71, 87, 0.14);
     color: var(--accent);
     transform: translateX(4px);
 }
 
 .chapter-item.read {
-    opacity: 0.55;
+    opacity: 0.5;
 }
 
-/* Reader View */
+/* Production Reader Engine */
 .reader-container {
-    max-width: 920px;
+    max-width: 950px;
     margin: 0 auto;
-    transition: background-color 0.3s ease;
-    padding: 1rem;
-    border-radius: 16px;
+    transition: all 0.3s ease;
+    padding: 1.2rem;
+    border-radius: 20px;
 }
 
-/* Reader Themes */
-.reader-theme-dark { background-color: #0d0e12; color: #f8f9fa; }
+.reader-theme-dark { background-color: #090a0f; color: #f8f9fa; }
 .reader-theme-black { background-color: #000000; color: #e0e0e0; }
-.reader-theme-sepia { background-color: #2b261f; color: #e8d8b8; }
+.reader-theme-sepia { background-color: #29221b; color: #e5d5be; }
+.reader-theme-slate { background-color: #161a22; color: #d8e0f0; }
 
 .reader-image {
     width: 100%;
     height: auto;
     display: block;
-    margin: 0 auto 12px auto;
-    border-radius: 6px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-    background-color: #16181e;
-    min-height: 400px;
+    margin: 0 auto 14px auto;
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.7);
+    background-color: #12141c;
+    min-height: 450px;
     transition: transform 0.2s ease;
 }
 
 .reader-controls-sticky {
     position: sticky;
-    top: 70px;
+    top: 75px;
     z-index: 100;
     background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    padding: 12px 20px;
-    border-radius: 16px;
-    margin-bottom: 1.5rem;
+    backdrop-filter: blur(20px);
+    padding: 14px 22px;
+    border-radius: 18px;
+    margin-bottom: 1.8rem;
     border: 1px solid var(--glass-border);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
 }
 
 .floating-nav {
@@ -340,28 +374,52 @@ body {
     bottom: 25px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(22, 24, 30, 0.95);
-    backdrop-filter: blur(16px);
+    background: rgba(18, 20, 28, 0.95);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     border-radius: 40px;
-    padding: 10px 24px;
-    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+    padding: 10px 26px;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
     z-index: 1000;
 }
 
 .progress-bar-reader {
     height: 4px;
-    background-color: var(--accent);
+    background: linear-gradient(90deg, #ff4757, #ffa502);
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 2000;
+    z-index: 3000;
     transition: width 0.2s ease;
+}
+
+/* Toast System */
+.toast-container-custom {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 3000;
+}
+
+.toast-custom {
+    background: var(--bg-surface);
+    border: 1px solid var(--accent);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    margin-top: 10px;
+    animation: fadeInRight 0.3s ease;
+}
+
+@keyframes fadeInRight {
+    from { opacity: 0; transform: translateX(50px); }
+    to { opacity: 1; transform: translateX(0); }
 }
 
 /* Skeleton Loading */
 .skeleton {
-    background: linear-gradient(90deg, #1c1f26 25%, #2a2e38 50%, #1c1f26 75%);
+    background: linear-gradient(90deg, #181b26 25%, #262a38 50%, #181b26 75%);
     background-size: 200% 100%;
     animation: loading 1.5s infinite;
     border-radius: 8px;
@@ -373,7 +431,7 @@ body {
 }
 
 @media (max-width: 576px) {
-    .hero-title { font-size: 1.6rem; }
-    .hero-overlay { padding: 1.8rem 1.2rem; }
-    .manga-grid { grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 0.9rem; }
+    .hero-title { font-size: 1.7rem; }
+    .hero-overlay { padding: 2rem 1.2rem; }
+    .manga-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.9rem; }
 }
