@@ -844,60 +844,70 @@ async function loadMangaDetails(manga) {
     ).join('');
 
     showView('details');
-    elements.chapterList.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-2 text-muted">Resolving all chapters...</div></div>`;
+    elements.chapterList.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-2 text-muted">Resolving chapters...</div></div>`;
 
     loadRelatedSeries(title);
 
     try {
+        const cleanTitle = title.split(/[:\-(]/)[0].trim();
+        const primaryUrl0 = `${API_BASE}/manga/${mId}/feed?limit=500&offset=0&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
+        const altSearchUrl = `${API_BASE}/manga?title=${encodeURIComponent(cleanTitle)}%20Colored&limit=3&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
+
+        // Launch batch 0 and alt search in parallel for ultra-fast first paint!
+        const [res0, altRes] = await Promise.all([
+            fetchWithFallback(primaryUrl0, 4000),
+            fetchWithFallback(altSearchUrl, 4000)
+        ]);
+
         let allFeedChapters = [];
-        let offset = 0;
-        let total = 1;
+        let total = 0;
 
-        // 1. Fetch primary manga feed chapters with fallback proxies
-        for (let i = 0; i < 20; i++) {
-            const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&offset=${offset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
-            const data = await fetchWithFallback(feedUrl, 10000);
-            if (!data) break;
-            const batch = data.data || [];
-            total = data.total || 0;
-            if (batch.length === 0) break;
-            allFeedChapters = allFeedChapters.concat(batch);
-            offset += batch.length;
-            if (offset >= total || batch.length < 500) break;
+        if (res0 && res0.data) {
+            allFeedChapters = res0.data;
+            total = res0.total || allFeedChapters.length;
         }
 
-        // 2. Multi-Edition Feed Merge: Fetch alternate edition feeds
-        try {
-            const cleanTitle = title.split(/[:\-(]/)[0].trim();
-            const relUrl = `${API_BASE}/manga?title=${encodeURIComponent(cleanTitle)}%20Colored&limit=5&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
-            const relData = await fetchWithFallback(relUrl, 6000);
-            if (relData && relData.data) {
-                const altList = relData.data.filter(m => m.id !== mId);
-                for (const altManga of altList.slice(0, 2)) {
-                    let altOffset = 0;
-                    for (let i = 0; i < 10; i++) {
-                        const altFeedUrl = `${API_BASE}/manga/${altManga.id}/feed?limit=500&offset=${altOffset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
-                        const aData = await fetchWithFallback(altFeedUrl, 8000);
-                        if (!aData) break;
-                        const aBatch = aData.data || [];
-                        if (aBatch.length === 0) break;
-                        allFeedChapters = allFeedChapters.concat(aBatch);
-                        altOffset += aBatch.length;
-                        if (altOffset >= (aData.total || 0) || aBatch.length < 500) break;
-                    }
-                }
-            }
-        } catch (e) {
-            console.warn('Alt feed fetch optional hiccup:', e);
-        }
-
-        state.rawFeedChapters = allFeedChapters;
-
+        // Render batch 0 immediately so chapters show up in ~300ms!
         if (allFeedChapters.length > 0) {
+            state.rawFeedChapters = [...allFeedChapters];
+            populateLanguageDropdown(state.rawFeedChapters);
+            renderLanguagePills(state.rawFeedChapters);
+            processAndRenderChapters();
+        }
+
+        // Launch remaining parallel offset batches
+        const extraPromises = [];
+
+        if (total > 500) {
+            for (let offset = 500; offset < total && offset < 10000; offset += 500) {
+                const url = `${API_BASE}/manga/${mId}/feed?limit=500&offset=${offset}&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
+                extraPromises.push(fetchWithFallback(url, 5000));
+            }
+        }
+
+        if (altRes && altRes.data) {
+            const altList = altRes.data.filter(m => m.id !== mId);
+            for (const altManga of altList.slice(0, 2)) {
+                const altUrl = `${API_BASE}/manga/${altManga.id}/feed?limit=500&offset=0&order%5Bchapter%5D=asc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive&contentRating%5B%5D=erotica&contentRating%5B%5D=pornographic`;
+                extraPromises.push(fetchWithFallback(altUrl, 5000));
+            }
+        }
+
+        if (extraPromises.length > 0) {
+            const extraResults = await Promise.allSettled(extraPromises);
+            extraResults.forEach(r => {
+                if (r.status === 'fulfilled' && r.value && r.value.data) {
+                    allFeedChapters = allFeedChapters.concat(r.value.data);
+                }
+            });
+
+            state.rawFeedChapters = allFeedChapters;
             populateLanguageDropdown(allFeedChapters);
             renderLanguagePills(allFeedChapters);
             processAndRenderChapters();
-        } else {
+        }
+
+        if (allFeedChapters.length === 0) {
             await loadFallbackChapters(mId, title);
         }
     } catch (err) {
@@ -1531,6 +1541,14 @@ async function loadChapter(index) {
         state.readerPages = resolvedPages;
         elements.pageCounter.textContent = `Total Pages: ${state.readerPages.length}`;
         renderPages();
+
+        // Background pre-fetch next chapter so clicking Next is instant!
+        if (index + 1 < state.allChapterList.length) {
+            const nextCh = state.allChapterList[index + 1];
+            if (nextCh && nextCh.id) {
+                fetchWithFallback(`${API_BASE}/at-home/server/${nextCh.id}`, 4000).catch(() => {});
+            }
+        }
     } else {
         const extUrl = chapter.attributes ? chapter.attributes.externalUrl : null;
         if (extUrl) {
