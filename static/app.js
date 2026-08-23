@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v5.0
- * Multi-Category Grids & Robust Search Engine
+ * Production Manga Reader Engine v6.0
+ * Multi-Category Grids & Robust Description Resolution
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -94,6 +94,16 @@ const elements = {
     readerFloatingNav: document.getElementById('reader-floating-nav'),
     toastContainer: document.getElementById('toast-container')
 };
+
+// Safe Description Helper (Fixes TypeError when description is empty object/null)
+function getMangaDescription(attr) {
+    if (!attr || !attr.description) return 'No description available for this title.';
+    if (typeof attr.description === 'string') return attr.description;
+    if (attr.description.en) return attr.description.en;
+    const values = Object.values(attr.description);
+    if (values.length > 0 && values[0]) return values[0];
+    return 'No description available for this title.';
+}
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
@@ -249,7 +259,7 @@ function showView(viewName) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Load Home Page Grids (Trending, Action, Adventure, Fantasy, Romance)
+// Load Home Page Grids
 async function loadAllHomeGrids() {
     renderSkeletons(elements.trendingGrid, 12);
     renderSkeletons(elements.actionGrid, 6);
@@ -289,19 +299,28 @@ async function loadCategoryGrid(genreKey, container) {
         const data = await res.json();
         if (data.data && data.data.length > 0) {
             renderMangaCards(container, data.data);
-        } else {
-            container.innerHTML = `<div class="col-12 text-muted small py-3">No category items found.</div>`;
+            return;
         }
-    } catch (e) {
-        container.innerHTML = `<div class="col-12 text-muted small py-3">Unable to load category items.</div>`;
-    }
+    } catch (e) {}
+
+    // Fallback to Flask Category API if client fetch yielded 0 or failed
+    try {
+        const pyRes = await fetch(`/api/category/${genreKey}`);
+        const pyData = await pyRes.json();
+        if (pyData.titles && pyData.titles.length > 0) {
+            renderFallbackSearchCards(container, pyData);
+            return;
+        }
+    } catch (e) {}
+
+    container.innerHTML = `<div class="col-12 text-muted small py-3">Category items updating...</div>`;
 }
 
 function renderHeroBanner(manga) {
     if (!elements.heroBanner || !manga) return;
     const attr = manga.attributes;
     const title = attr.title.en || Object.values(attr.title)[0] || 'Featured Series';
-    const desc = attr.description.en || Object.values(attr.description)[0] || 'Explore top trending manga chapters.';
+    const desc = getMangaDescription(attr);
 
     elements.heroTitle.textContent = title;
     elements.heroDescription.textContent = desc.length > 250 ? desc.slice(0, 250) + '...' : desc;
@@ -324,7 +343,6 @@ async function performSearch(query) {
         if (data.data && data.data.length > 0) {
             renderMangaCards(elements.searchResultsGrid, data.data);
         } else {
-            // Fallback to Python server API if available
             try {
                 const pyRes = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
                 const pyData = await pyRes.json();
@@ -338,7 +356,6 @@ async function performSearch(query) {
         }
     } catch (err) {
         console.error('Search error:', err);
-        // Fallback attempt on error
         try {
             const pyRes = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
             const pyData = await pyRes.json();
@@ -438,8 +455,8 @@ function renderMangaCards(container, mangaList) {
     container.innerHTML = '';
     mangaList.forEach(manga => {
         const mId = manga.id;
-        const attr = manga.attributes;
-        const title = attr.title.en || Object.values(attr.title)[0] || 'Untitled';
+        const attr = manga.attributes || {};
+        const title = (attr.title && (attr.title.en || Object.values(attr.title)[0])) || 'Untitled';
         const status = attr.status || 'Unknown';
 
         let coverFile = '';
@@ -467,7 +484,14 @@ function renderMangaCards(container, mangaList) {
             </div>
         `;
 
-        card.addEventListener('click', () => loadMangaDetails(manga));
+        card.addEventListener('click', () => {
+            try {
+                loadMangaDetails(manga);
+            } catch (err) {
+                console.error('Click error loading details:', err);
+                loadMangaDetailsById(mId);
+            }
+        });
         container.appendChild(card);
     });
 }
@@ -484,10 +508,11 @@ async function loadMangaDetailsById(mangaId) {
 }
 
 async function loadMangaDetails(manga) {
+    if (!manga) return;
     state.currentManga = manga;
     const mId = manga.id;
-    const attr = manga.attributes;
-    const title = attr.title.en || Object.values(attr.title)[0] || 'Untitled';
+    const attr = manga.attributes || {};
+    const title = (attr.title && (attr.title.en || Object.values(attr.title)[0])) || 'Untitled';
 
     let coverFile = '';
     if (manga.relationships) {
@@ -502,11 +527,11 @@ async function loadMangaDetails(manga) {
     elements.detailTitle.textContent = title;
     elements.detailStatus.textContent = `Status: ${attr.status || 'Unknown'} | Year: ${attr.year || 'N/A'}`;
     
-    const desc = attr.description.en || Object.values(attr.description)[0] || 'No description available.';
+    const desc = getMangaDescription(attr);
     elements.detailDescription.textContent = desc.length > 350 ? desc.slice(0, 350) + '...' : desc;
 
     elements.detailTags.innerHTML = (attr.tags || []).slice(0, 6).map(t => 
-        `<span class="badge bg-danger me-1 mb-1 opacity-75">${t.attributes.name.en}</span>`
+        `<span class="badge bg-danger me-1 mb-1 opacity-75">${t.attributes ? t.attributes.name.en : 'Tag'}</span>`
     ).join('');
 
     showView('details');
@@ -523,7 +548,6 @@ async function loadMangaDetails(manga) {
         if (readable.length === 0) readable = data.data || [];
 
         if (readable.length > 0) {
-            // Numerical chapter sort
             readable.sort((a, b) => {
                 const numA = parseFloat(a.attributes.chapter) || 99999;
                 const numB = parseFloat(b.attributes.chapter) || 99999;
@@ -554,7 +578,7 @@ async function loadMangaDetails(manga) {
         }
     } catch (err) {
         console.error('Failed to load chapters:', err);
-        elements.chapterList.innerHTML = `<div class="text-center text-danger py-4">Failed to resolve chapters.</div>`;
+        elements.chapterList.innerHTML = `<div class="text-center text-danger py-4">Failed to resolve chapters. Check your connection.</div>`;
     }
 }
 
@@ -647,7 +671,7 @@ function filterChapterList() {
     });
 }
 
-// Load Reader View with Canonical Storage Engine (Guaranteed Status 200)
+// Load Reader View with Canonical Storage Engine
 async function loadChapter(index) {
     if (index < 0 || index >= state.currentChapterList.length) return;
     
@@ -682,7 +706,6 @@ async function loadChapter(index) {
             const filenames = state.useDataSaver ? (data.chapter.dataSaver || data.chapter.data) : (data.chapter.data || data.chapter.dataSaver);
             const saverFilenames = data.chapter.dataSaver || data.chapter.data;
 
-            // Construct Canonical Uploads URL as Primary (Guaranteed Status 200)
             state.readerPages = (filenames || []).map((f, i) => ({
                 primary: `${UPLOADS_BASE}/${hash}/${f}`,
                 secondary: `${UPLOADS_SAVER_BASE}/${hash}/${saverFilenames[i] || f}`,

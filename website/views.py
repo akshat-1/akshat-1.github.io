@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify, request
-from scrapper import get_search_result, get_chapters, get_images, search_
+from scrapper import get_search_result, get_chapters, get_images, get_category_manga, search_
 
 views = Blueprint('views', __name__)
 
@@ -11,6 +11,11 @@ def home():
 def api_search():
     q = request.args.get('q', 'Dragon Ball')
     titles, links, imgs = get_search_result(q)
+    return jsonify({'titles': titles, 'links': links, 'imgs': imgs})
+
+@views.route('/api/category/<genre_key>')
+def api_category(genre_key):
+    titles, links, imgs = get_category_manga(genre_key)
     return jsonify({'titles': titles, 'links': links, 'imgs': imgs})
 
 @views.route('/api/chapters/<manga_id>')

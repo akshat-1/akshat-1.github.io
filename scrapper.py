@@ -10,6 +10,15 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
+GENRE_TAGS = {
+    "action": "391b0423-d847-456f-aff0-8b0cfc03066b",
+    "adventure": "87cc87cd-a395-47af-b27a-93258283bbc6",
+    "fantasy": "cdc58593-87dd-415e-bbc0-2ec27bf404cc",
+    "comedy": "4d32cc48-9f00-4cca-9b5a-a839f0764984",
+    "romance": "423e2eae-a7a2-4a8b-ac03-a8351462d71d",
+    "scifi": "256c8bd9-4904-4360-bf4f-508a76d67183"
+}
+
 def search_(query: str) -> str:
     """Format query string."""
     return query.strip()
@@ -112,6 +121,56 @@ def get_search_result(query_or_url: str):
 
     return titles, links, imgs
 
+def get_category_manga(genre_key: str):
+    """
+    Fetch manga for specific category (action, adventure, fantasy, comedy, romance, scifi).
+    Returns: (titles, links, imgs)
+    """
+    titles = []
+    links = []
+    imgs = []
+
+    tag_id = GENRE_TAGS.get(genre_key.lower())
+    if not tag_id:
+        return get_search_result(genre_key)
+
+    try:
+        url = f"{BASE_MANGADEX}/manga"
+        params = {
+            "limit": 12,
+            "includedTags[]": tag_id,
+            "includes[]": ["cover_art"],
+            "contentRating[]": ["safe", "suggestive"]
+        }
+        res = requests.get(url, params=params, headers=HEADERS, timeout=10)
+        items = res.json().get("data", []) if res.status_code == 200 else []
+
+        for item in items:
+            m_id = item.get("id")
+            attr = item.get("attributes", {})
+            title_dict = attr.get("title", {})
+            title = title_dict.get("en") or next(iter(title_dict.values()), "Unknown Title")
+
+            cover_filename = ""
+            for rel in item.get("relationships", []):
+                if rel.get("type") == "cover_art" and "attributes" in rel:
+                    cover_filename = rel["attributes"].get("fileName", "")
+
+            cover_url = (
+                f"{COVER_BASE}/{m_id}/{cover_filename}.256.jpg"
+                if cover_filename
+                else "https://via.placeholder.com/200x300?text=No+Cover"
+            )
+
+            titles.append(title)
+            links.append(m_id)
+            imgs.append(cover_url)
+
+    except Exception as e:
+        print(f"Error in get_category_manga: {e}")
+
+    return titles, links, imgs
+
 def get_chapters(manga_id_or_url: str):
     """
     Fetch readable chapter list sorted numerically (Chapter 1, 2, 3... 14) with multi-language fallback.
@@ -188,7 +247,6 @@ def get_images(chapter_id_or_url: str) -> list:
             if hash_val:
                 if filenames:
                     for fname in filenames:
-                        # Use canonical uploads.mangadex.org storage URL
                         pages.append(f"{UPLOADS_BASE}/{hash_val}/{fname}")
                 elif saver_filenames:
                     for fname in saver_filenames:
