@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v15.0
- * Real Multi-Page Chapter Filter & Proportional PDF Downloader
+ * Production Manga Reader Engine v16.0
+ * Unique jsPDF Alias Key Page Generator & Proportional Scaling
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -339,7 +339,7 @@ function shareMangaLink() {
     }
 }
 
-// Proportional PDF Chapter Downloader (jsPDF Base64 + Aspect Ratio Scaling)
+// Download Chapter as PDF Functionality (jsPDF + Unique Page Alias + Proportional Scaling)
 async function downloadChapterPDF() {
     if (!state.readerPages || state.readerPages.length === 0) {
         showToast('No pages available to download.');
@@ -362,22 +362,43 @@ async function downloadChapterPDF() {
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
 
+        const imgElements = elements.readerPagesContainer.querySelectorAll('.reader-image');
         let addedPages = 0;
+
         for (let i = 0; i < state.readerPages.length; i++) {
-            const pageObj = state.readerPages[i];
-            const imgUrl = typeof pageObj === 'string' ? pageObj : (pageObj.primary || pageObj.secondary || pageObj.backup);
+            let base64Data = null;
             
-            const base64Data = await imageUrlToBase64(imgUrl);
+            // 1. Try DOM img src
+            if (imgElements[i] && imgElements[i].src && !imgElements[i].src.includes('placeholder')) {
+                base64Data = await imageUrlToBase64(imgElements[i].src);
+            }
+
+            // 2. Try primary state page URL
+            if (!base64Data && state.readerPages[i]) {
+                const pageObj = state.readerPages[i];
+                const primaryUrl = typeof pageObj === 'string' ? pageObj : pageObj.primary;
+                base64Data = await imageUrlToBase64(primaryUrl);
+            }
+
+            // 3. Try secondary/backup state page URL
+            if (!base64Data && state.readerPages[i] && typeof state.readerPages[i] === 'object') {
+                base64Data = await imageUrlToBase64(state.readerPages[i].secondary || state.readerPages[i].backup);
+            }
+
             if (base64Data) {
                 if (addedPages > 0) pdf.addPage();
 
-                // Calculate Proportional Aspect Ratio Scaling
+                // Decode Image to calculate Proportional Aspect Ratio
                 const tempImg = new Image();
                 tempImg.src = base64Data;
-                await tempImg.decode().catch(() => {});
+                await new Promise(resolve => {
+                    if (tempImg.complete) resolve();
+                    else tempImg.onload = resolve;
+                    tempImg.onerror = resolve;
+                });
 
-                const imgW = tempImg.naturalWidth || 600;
-                const imgH = tempImg.naturalHeight || 800;
+                const imgW = tempImg.naturalWidth || tempImg.width || 600;
+                const imgH = tempImg.naturalHeight || tempImg.height || 800;
                 const imgRatio = imgW / imgH;
                 const pdfRatio = pdfWidth / pdfHeight;
 
@@ -393,8 +414,12 @@ async function downloadChapterPDF() {
                 const xOffset = (pdfWidth - renderW) / 2;
                 const yOffset = (pdfHeight - renderH) / 2;
 
-                pdf.addImage(base64Data, 'JPEG', xOffset, yOffset, renderW, renderH);
+                // CRITICAL FIX: Pass unique alias key 'page_' + i so jsPDF does not cache/repeat page 1 image!
+                const aliasKey = `page_${i + 1}_${Date.now()}`;
+                pdf.addImage(base64Data, 'JPEG', xOffset, yOffset, renderW, renderH, aliasKey, 'FAST');
                 addedPages++;
+
+                showToast(`Packaging page ${addedPages} of ${state.readerPages.length}...`);
             }
         }
 
@@ -402,7 +427,7 @@ async function downloadChapterPDF() {
             const cleanName = mangaTitle.replace(/[^\w\s-]/gi, '').trim();
             const filename = `${cleanName}_Chapter_${chapNum}.pdf`;
             pdf.save(filename);
-            showToast(`PDF Downloaded: ${filename}`);
+            showToast(`PDF Download Complete (${addedPages} pages)!`);
         } else {
             showToast('Failed to fetch image pages for PDF.');
         }
