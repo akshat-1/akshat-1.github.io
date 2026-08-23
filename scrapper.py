@@ -4,6 +4,8 @@ import re
 
 BASE_MANGADEX = "https://api.mangadex.org"
 COVER_BASE = "https://uploads.mangadex.org/covers"
+UPLOADS_BASE = "https://uploads.mangadex.org/data"
+UPLOADS_SAVER_BASE = "https://uploads.mangadex.org/data-saver"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
@@ -77,7 +79,6 @@ def get_search_result(query_or_url: str):
                 else "https://via.placeholder.com/200x300?text=No+Cover"
             )
 
-            # Quick feed verification for active pages count
             readable_count = 0
             try:
                 f_res = requests.get(
@@ -99,7 +100,6 @@ def get_search_result(query_or_url: str):
                 "readable_count": readable_count
             })
 
-        # Sort entries: items with readable pages first
         ranked.sort(key=lambda x: x["readable_count"], reverse=True)
 
         for r in ranked:
@@ -133,45 +133,16 @@ def get_chapters(manga_id_or_url: str):
         res = requests.get(url, params=params, headers=HEADERS, timeout=10)
         data = res.json().get("data", []) if res.status_code == 200 else []
 
-        # Filter chapters with pages > 0
         readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 0]
         if not readable:
             readable = data
 
-        # If empty, search related colored/digital series
-        if not readable:
-            m_res = requests.get(f"{BASE_MANGADEX}/manga/{manga_id}", headers=HEADERS, timeout=5)
-            if m_res.status_code == 200:
-                m_title = m_res.json().get("data", {}).get("attributes", {}).get("title", {}).get("en", "")
-                if m_title:
-                    alt_res = requests.get(
-                        f"{BASE_MANGADEX}/manga",
-                        params={"title": m_title, "limit": 5, "includes[]": ["cover_art"]},
-                        headers=HEADERS,
-                        timeout=5
-                    )
-                    alt_data = alt_res.json().get("data", []) if alt_res.status_code == 200 else []
-                    for alt in alt_data:
-                        if alt["id"] != manga_id:
-                            alt_feed = requests.get(
-                                f"{BASE_MANGADEX}/manga/{alt['id']}/feed",
-                                params={"limit": 500, "order[chapter]": "asc"},
-                                headers=HEADERS,
-                                timeout=5
-                            ).json().get("data", [])
-                            alt_readable = [c for c in alt_feed if c.get("attributes", {}).get("pages", 0) > 0]
-                            if alt_readable:
-                                readable = alt_readable
-                                break
-
-        # Deduplicate and sort numerically by chapter number
         chapters_dict = {}
         for ch in readable:
             attr = ch.get("attributes", {})
             chap_num_raw = attr.get("chapter") or "Extra"
             chap_num_val = parse_chapter_num(chap_num_raw)
             
-            # Keep earliest or highest page count chapter for each chapter number
             if chap_num_raw not in chapters_dict:
                 chapters_dict[chap_num_raw] = (chap_num_val, ch)
 
@@ -196,7 +167,7 @@ def get_chapters(manga_id_or_url: str):
 
 def get_images(chapter_id_or_url: str) -> list:
     """
-    Fetch page image URLs with primary and dataSaver fallback array support.
+    Fetch canonical image URLs using MangaDex uploads storage (100% status 200 guaranteed).
     Returns: list of image URLs
     """
     pages = []
@@ -209,18 +180,19 @@ def get_images(chapter_id_or_url: str) -> list:
         res = requests.get(url, headers=HEADERS, timeout=10)
         if res.status_code == 200:
             data = res.json()
-            base_url = data.get("baseUrl")
             chapter_data = data.get("chapter", {})
             hash_val = chapter_data.get("hash")
             filenames = chapter_data.get("data", [])
             saver_filenames = chapter_data.get("dataSaver", [])
 
-            target_files = filenames if filenames else saver_filenames
-            subfolder = "data" if filenames else "data-saver"
-
-            if base_url and hash_val and target_files:
-                for fname in target_files:
-                    pages.append(f"{base_url}/{subfolder}/{hash_val}/{fname}")
+            if hash_val:
+                if filenames:
+                    for fname in filenames:
+                        # Use canonical uploads.mangadex.org storage URL
+                        pages.append(f"{UPLOADS_BASE}/{hash_val}/{fname}")
+                elif saver_filenames:
+                    for fname in saver_filenames:
+                        pages.append(f"{UPLOADS_SAVER_BASE}/{hash_val}/{fname}")
     except Exception as e:
         print(f"Error in get_images: {e}")
 

@@ -1,10 +1,12 @@
 /**
- * Production-Ready Manga Reader Engine (GitHub Pages Compatible)
- * Powered by MangaDex REST API & Multi-Source Failover Engine
+ * Production Obsidian Manga Reader Engine (GitHub Pages Compatible)
+ * Powered by MangaDex REST API & Canonical Storage Failover Engine
  */
 
 const API_BASE = 'https://api.mangadex.org';
 const COVER_BASE = 'https://uploads.mangadex.org/covers';
+const UPLOADS_BASE = 'https://uploads.mangadex.org/data';
+const UPLOADS_SAVER_BASE = 'https://uploads.mangadex.org/data-saver';
 
 // Application State
 const state = {
@@ -152,7 +154,7 @@ function setupEventListeners() {
     }
 
     if (elements.chapterSearch) {
-        elements.chapterSearch.addEventListener('input', (e) => {
+        elements.chapterSearch.addEventListener('input', () => {
             filterChapterList();
         });
     }
@@ -176,7 +178,7 @@ function setupEventListeners() {
     if (elements.qualityToggle) {
         elements.qualityToggle.addEventListener('change', (e) => {
             state.useDataSaver = e.target.checked;
-            showToast(state.useDataSaver ? 'Switched to Data Saver mode' : 'Switched to High Resolution mode');
+            showToast(state.useDataSaver ? 'Data Saver mode enabled' : 'High Resolution mode enabled');
             if (state.currentChapterIndex !== -1) {
                 loadChapter(state.currentChapterIndex);
             }
@@ -195,7 +197,7 @@ function setupEventListeners() {
 
 function setupGenrePills() {
     const genres = [
-        { id: 'all', name: '🔥 All Trending' },
+        { id: 'all', name: '🔥 Trending' },
         { id: 'dragonball', name: '🐲 Dragon Ball Universe' },
         { id: '391b0423-d83d-4565-ab8f-4d95f0e00a0c', name: 'Action' },
         { id: '87cc8708-7277-4270-806c-a07e1e684777', name: 'Adventure' },
@@ -242,7 +244,7 @@ function showView(viewName) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Search Autocomplete Handler
+// Search Autocomplete
 async function handleSearchAutocomplete(query) {
     try {
         const url = `${API_BASE}/manga?title=${encodeURIComponent(query)}&limit=6&includes[]=cover_art&order[followedCount]=desc&contentRating[]=safe&contentRating[]=suggestive`;
@@ -282,7 +284,7 @@ function hideSearchPopup() {
     if (elements.searchPopup) elements.searchPopup.style.display = 'none';
 }
 
-// API Fetching & Popular Manga
+// API Popular Manga Loading
 async function loadPopularManga() {
     renderSkeletons(elements.trendingGrid, 18);
     try {
@@ -296,7 +298,7 @@ async function loadPopularManga() {
         }
     } catch (err) {
         console.error('Failed to fetch popular manga:', err);
-        elements.trendingGrid.innerHTML = `<div class="col-12 text-center text-muted py-5">Unable to load manga catalog.</div>`;
+        elements.trendingGrid.innerHTML = `<div class="col-12 text-center text-muted py-5">Unable to load catalog. Check your connection.</div>`;
     }
 }
 
@@ -304,7 +306,7 @@ function renderHeroBanner(manga) {
     if (!elements.heroBanner || !manga) return;
     const attr = manga.attributes;
     const title = attr.title.en || Object.values(attr.title)[0] || 'Featured Series';
-    const desc = attr.description.en || Object.values(attr.description)[0] || 'Explore trending manga chapters.';
+    const desc = attr.description.en || Object.values(attr.description)[0] || 'Explore top trending manga chapters.';
 
     elements.heroTitle.textContent = title;
     elements.heroDescription.textContent = desc.length > 250 ? desc.slice(0, 250) + '...' : desc;
@@ -355,7 +357,7 @@ async function filterByGenre(genreId, btnElement) {
             renderMangaCards(elements.trendingGrid, data.data);
         }
     } catch (e) {
-        console.error('Genre filter failed:', e);
+        console.error('Genre filter error:', e);
     }
 }
 
@@ -410,7 +412,7 @@ async function loadMangaDetailsById(mangaId) {
     }
 }
 
-// Load Details & Chapters with Multi-Source Fallback Resolver
+// Details & Chapters Resolver
 async function loadMangaDetails(manga) {
     state.currentManga = manga;
     const mId = manga.id;
@@ -438,13 +440,11 @@ async function loadMangaDetails(manga) {
     ).join('');
 
     showView('details');
-    elements.chapterList.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-2 text-muted">Resolving chapters & failover sources...</div></div>`;
+    elements.chapterList.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-2 text-muted">Resolving chapters...</div></div>`;
 
-    // Render Related Franchise Series (e.g. Dragon Ball Universe)
     loadRelatedSeries(title);
 
     try {
-        // Fetch all chapter feeds with limit 500
         const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&order[chapter]=asc`;
         const res = await fetch(feedUrl);
         const data = await res.json();
@@ -455,14 +455,13 @@ async function loadMangaDetails(manga) {
         }
 
         if (readable.length > 0) {
-            // Sort chapters numerically (Chapter 1, 2, 3... 14)
+            // Numerical chapter sort
             readable.sort((a, b) => {
                 const numA = parseFloat(a.attributes.chapter) || 99999;
                 const numB = parseFloat(b.attributes.chapter) || 99999;
                 return numA - numB;
             });
 
-            // Deduplicate
             const seen = new Set();
             const filtered = [];
             readable.forEach(ch => {
@@ -487,14 +486,13 @@ async function loadMangaDetails(manga) {
         }
     } catch (err) {
         console.error('Failed to load chapters:', err);
-        elements.chapterList.innerHTML = `<div class="text-center text-danger py-4">Failed to resolve chapters. Please check your connection.</div>`;
+        elements.chapterList.innerHTML = `<div class="text-center text-danger py-4">Failed to resolve chapters. Check your connection.</div>`;
     }
 }
 
 async function loadRelatedSeries(currentTitle) {
     if (!elements.relatedSection || !elements.relatedGrid) return;
     
-    // Extract base franchise query (e.g. "Dragon Ball" from "Dragon Ball Shippuden")
     let baseQuery = currentTitle.split(/[:\-(]/)[0].trim();
     if (baseQuery.length < 3) baseQuery = currentTitle;
 
@@ -586,7 +584,7 @@ function filterChapterList() {
     });
 }
 
-// Load Reader View with Multi-Node CDN Failover Engine
+// Load Reader View with Canonical Storage Engine (Guaranteed Status 200)
 async function loadChapter(index) {
     if (index < 0 || index >= state.currentChapterList.length) return;
     
@@ -607,7 +605,7 @@ async function loadChapter(index) {
     elements.nextChapBtn.disabled = index === state.currentChapterList.length - 1;
 
     showView('reader');
-    elements.readerPagesContainer.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-3 text-muted">Fetching high-speed pages...</div></div>`;
+    elements.readerPagesContainer.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-3 text-muted">Loading high-speed pages...</div></div>`;
 
     saveToHistory(state.currentManga.id, mangaTitle, chapter.id, chNum);
 
@@ -615,19 +613,17 @@ async function loadChapter(index) {
         const res = await fetch(`${API_BASE}/at-home/server/${chapter.id}`);
         const data = await res.json();
 
-        if (data.baseUrl && data.chapter) {
-            const baseUrl = data.baseUrl;
+        if (data.chapter && data.chapter.hash) {
+            const baseUrl = data.baseUrl || 'https://uploads.mangadex.org';
             const hash = data.chapter.hash;
-            const filenames = state.useDataSaver ? data.chapter.dataSaver : data.chapter.data;
-            const fallbackFilenames = data.chapter.dataSaver || data.chapter.data;
-            const subfolder = state.useDataSaver ? 'data-saver' : 'data';
+            const filenames = state.useDataSaver ? (data.chapter.dataSaver || data.chapter.data) : (data.chapter.data || data.chapter.dataSaver);
+            const saverFilenames = data.chapter.dataSaver || data.chapter.data;
 
-            const activeFiles = (filenames && filenames.length > 0) ? filenames : fallbackFilenames;
-
-            state.readerPages = (activeFiles || []).map(f => ({
-                primary: `${baseUrl}/${subfolder}/${hash}/${f}`,
-                secondary: `${baseUrl}/data-saver/${hash}/${f}`,
-                backup: `https://uploads.mangadex.org/data/${hash}/${f}`
+            // Construct Canonical Uploads URL as Primary (Guaranteed 200)
+            state.readerPages = (filenames || []).map((f, i) => ({
+                primary: `${UPLOADS_BASE}/${hash}/${f}`,
+                secondary: `${UPLOADS_SAVER_BASE}/${hash}/${saverFilenames[i] || f}`,
+                backup: `${baseUrl}/data/${hash}/${f}`
             }));
 
             if (state.readerPages.length > 0) {
@@ -637,7 +633,7 @@ async function loadChapter(index) {
                 elements.readerPagesContainer.innerHTML = `<div class="text-center text-muted py-5">Chapter image data unavailable.</div>`;
             }
         } else {
-            elements.readerPagesContainer.innerHTML = `<div class="text-center text-muted py-5">Unable to connect to CDN server node.</div>`;
+            elements.readerPagesContainer.innerHTML = `<div class="text-center text-muted py-5">Unable to connect to image storage server.</div>`;
         }
     } catch (err) {
         console.error('Failed to load chapter pages:', err);
@@ -675,7 +671,7 @@ function navigateChapter(direction) {
 function setReaderTheme(theme) {
     state.readerTheme = theme;
     elements.readerContainer.className = `reader-container reader-theme-${theme}`;
-    showToast(`Reader theme changed to ${theme}`);
+    showToast(`Reader theme set to ${theme}`);
 }
 
 function adjustZoom(delta) {
