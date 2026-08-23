@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v9.0
- * Encoded URL Parameter Syntax & Multi-Source Detail Resolver
+ * Production Manga Reader Engine v10.0
+ * Chapter Feed URL Encoding & Multi-Tier Trending/Chapter Fallbacks
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -282,7 +282,7 @@ function showView(viewName) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Load Home Grids
+// Load Home Grids with Fallback
 async function loadAllHomeGrids() {
     renderSkeletons(elements.trendingGrid, 12);
     renderSkeletons(elements.actionGrid, 6);
@@ -290,6 +290,7 @@ async function loadAllHomeGrids() {
     renderSkeletons(elements.fantasyGrid, 6);
     renderSkeletons(elements.romanceGrid, 6);
 
+    // 1. Trending
     try {
         const url = `${API_BASE}/manga?limit=18&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
         const res = await fetch(url);
@@ -297,13 +298,31 @@ async function loadAllHomeGrids() {
         if (data.data && data.data.length > 0) {
             renderHeroBanner(data.data[0]);
             renderMangaCards(elements.trendingGrid, data.data);
+        } else {
+            loadTrendingFallback();
         }
-    } catch (e) { console.error('Trending load error:', e); }
+    } catch (e) {
+        loadTrendingFallback();
+    }
 
+    // 2. Action
     loadCategoryGrid('action', elements.actionGrid);
+    // 3. Adventure
     loadCategoryGrid('adventure', elements.adventureGrid);
+    // 4. Fantasy
     loadCategoryGrid('fantasy', elements.fantasyGrid);
+    // 5. Romance
     loadCategoryGrid('romance', elements.romanceGrid);
+}
+
+async function loadTrendingFallback() {
+    try {
+        const pyRes = await fetch('/api/search?q=popular');
+        const pyData = await pyRes.json();
+        if (pyData.titles && pyData.titles.length > 0) {
+            renderFallbackSearchCards(elements.trendingGrid, pyData);
+        }
+    } catch (e) {}
 }
 
 async function loadCategoryGrid(genreKey, container) {
@@ -499,7 +518,7 @@ function renderMangaCards(container, mangaList) {
     });
 }
 
-// Multi-Source Manga Details Resolver (CORS Encoded + Flask Fallback)
+// Multi-Source Manga Details Resolver
 async function loadMangaDetailsById(mangaIdOrQuery) {
     hideSearchPopup();
     if (!mangaIdOrQuery) return;
@@ -582,7 +601,8 @@ async function loadMangaDetails(manga) {
     loadRelatedSeries(title);
 
     try {
-        const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&order[chapter]=asc`;
+        // ENCODED FEED URL (Fixes TypeError in fetch)
+        const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&order%5Bchapter%5D=asc`;
         const res = await fetch(feedUrl);
         const data = await res.json();
         let readable = (data.data || []).filter(c => (c.attributes.pages || 0) > 0);
@@ -610,32 +630,37 @@ async function loadMangaDetails(manga) {
             renderChapterList();
         } else {
             // Fallback: load chapters from Python server API
-            try {
-                const pyFeedRes = await fetch(`/api/chapters/${mId}`);
-                const pyFeedData = await pyFeedRes.json();
-                if (pyFeedData.links && pyFeedData.links.length > 0) {
-                    state.currentChapterList = pyFeedData.links.map((link, idx) => ({
-                        id: link,
-                        attributes: { chapter: `${idx + 1}`, title: pyFeedData.titles[idx], pages: 20 }
-                    }));
-                    renderChapterList();
-                    return;
-                }
-            } catch (e) {}
-
-            elements.chapterList.innerHTML = `
-                <div class="text-center py-4">
-                    <p class="text-muted mb-3">No direct image chapters found for this specific edition record.</p>
-                    <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="performSearch('${escapeHtml(title)}')">
-                        <i class="fa-solid fa-magnifying-glass me-1"></i> Search Alternate Editions
-                    </button>
-                </div>
-            `;
+            await loadFallbackChapters(mId, title);
         }
     } catch (err) {
         console.error('Failed to load chapters:', err);
-        elements.chapterList.innerHTML = `<div class="text-center text-danger py-4">Failed to resolve chapters. Check your connection.</div>`;
+        // Retry via Python server API fallback
+        await loadFallbackChapters(mId, title);
     }
+}
+
+async function loadFallbackChapters(mId, title) {
+    try {
+        const pyFeedRes = await fetch(`/api/chapters/${mId}`);
+        const pyFeedData = await pyFeedRes.json();
+        if (pyFeedData.links && pyFeedData.links.length > 0) {
+            state.currentChapterList = pyFeedData.links.map((link, idx) => ({
+                id: link,
+                attributes: { chapter: `${idx + 1}`, title: pyFeedData.titles[idx], pages: 20 }
+            }));
+            renderChapterList();
+            return;
+        }
+    } catch (e) {}
+
+    elements.chapterList.innerHTML = `
+        <div class="text-center py-4">
+            <p class="text-muted mb-3">No direct image chapters found for this specific edition record.</p>
+            <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="performSearch('${escapeHtml(title)}')">
+                <i class="fa-solid fa-magnifying-glass me-1"></i> Search Alternate Editions
+            </button>
+        </div>
+    `;
 }
 
 async function loadRelatedSeries(currentTitle) {
@@ -770,7 +795,6 @@ async function loadChapter(index) {
                 elements.readerPagesContainer.innerHTML = `<div class="text-center text-muted py-5">Chapter image data unavailable.</div>`;
             }
         } else {
-            // Fallback to Flask API images endpoint
             try {
                 const pyImgRes = await fetch(`/api/images/${chapter.id}`);
                 const pyImgData = await pyImgRes.json();
