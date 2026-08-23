@@ -491,74 +491,146 @@ async function downloadChapterPDF() {
     }
 }
 
+// Reliable Fetch with CORS Proxy Fallbacks
+async function fetchWithFallback(url, timeoutMs = 8000) {
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const res = await fetch(url, { signal: controller.signal });
+        clearTimeout(timer);
+        if (res.ok) {
+            const data = await res.json();
+            if (data) return data;
+        }
+    } catch (e) {}
+
+    // CORS Proxy 1: corsproxy.io
+    try {
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
+        if (res.ok) {
+            const data = await res.json();
+            if (data) return data;
+        }
+    } catch (e) {}
+
+    // CORS Proxy 2: allorigins.win
+    try {
+        const proxyUrl2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl2, { signal: AbortSignal.timeout(6000) });
+        if (res.ok) {
+            const data = await res.json();
+            if (data) return data;
+        }
+    } catch (e) {}
+
+    return null;
+}
+
+function renderFeaturedFallbackCards(container) {
+    if (!container) return;
+    const featuredList = [
+        {
+            id: 'a1c7c817-4e59-43b7-9365-09675a149a6f',
+            attributes: {
+                title: { en: 'One Piece' },
+                status: 'ongoing',
+                year: 1997,
+                originalLanguage: 'ja'
+            },
+            relationships: [{ type: 'cover_art', attributes: { fileName: '2f4aca53-64c7-46ac-ae85-3bc9b3169890.png' } }]
+        },
+        {
+            id: 'c52b2ce3-7f95-469c-96b0-479524fb7a1a',
+            attributes: {
+                title: { en: 'Jujutsu Kaisen' },
+                status: 'completed',
+                year: 2018,
+                originalLanguage: 'ja'
+            },
+            relationships: [{ type: 'cover_art', attributes: { fileName: '6d9134b2-21ea-4d02-ac2b-7c0d1c6a2aaa.jpg' } }]
+        },
+        {
+            id: 'e896c48c-3150-437d-ba57-d8567eb399ae',
+            attributes: {
+                title: { en: 'Chainsaw Man' },
+                status: 'ongoing',
+                year: 2018,
+                originalLanguage: 'ja'
+            },
+            relationships: [{ type: 'cover_art', attributes: { fileName: 'fa06e4e4-ef2a-477b-bfb6-a2a88793620b.jpg' } }]
+        },
+        {
+            id: 'ade0306c-f4b6-4890-9edb-1ddf04df2039',
+            attributes: {
+                title: { en: 'Solo Leveling: Ragnarok' },
+                status: 'ongoing',
+                year: 2023,
+                originalLanguage: 'ko'
+            },
+            relationships: [{ type: 'cover_art', attributes: { fileName: 'fe76445d-387f-4ff6-8340-f06403c20dbe.jpg' } }]
+        }
+    ];
+
+    if (!state.heroManga && featuredList.length > 0) {
+        state.heroManga = featuredList[0];
+        renderHeroBanner(featuredList[0]);
+    }
+
+    renderMangaCards(container, featuredList);
+}
+
 // Load Home Grids
 async function loadAllHomeGrids() {
     if (elements.latestGrid) renderSkeletons(elements.latestGrid, 6);
-    renderSkeletons(elements.trendingGrid, 12);
-    renderSkeletons(elements.actionGrid, 6);
-    renderSkeletons(elements.adventureGrid, 6);
-    renderSkeletons(elements.fantasyGrid, 6);
-    renderSkeletons(elements.romanceGrid, 6);
+    if (elements.trendingGrid) renderSkeletons(elements.trendingGrid, 12);
+    if (elements.actionGrid) renderSkeletons(elements.actionGrid, 6);
+    if (elements.adventureGrid) renderSkeletons(elements.adventureGrid, 6);
+    if (elements.fantasyGrid) renderSkeletons(elements.fantasyGrid, 6);
+    if (elements.romanceGrid) renderSkeletons(elements.romanceGrid, 6);
 
-    await Promise.all([
-        loadLatestGrid(elements.latestGrid),
-        loadTrendingGrid(),
-        loadCategoryGrid('action', elements.actionGrid),
-        loadCategoryGrid('adventure', elements.adventureGrid),
-        loadCategoryGrid('fantasy', elements.fantasyGrid),
-        loadCategoryGrid('romance', elements.romanceGrid)
-    ]);
+    try {
+        await Promise.allSettled([
+            loadLatestGrid(elements.latestGrid),
+            loadTrendingGrid(),
+            loadCategoryGrid('action', elements.actionGrid),
+            loadCategoryGrid('adventure', elements.adventureGrid),
+            loadCategoryGrid('fantasy', elements.fantasyGrid),
+            loadCategoryGrid('romance', elements.romanceGrid)
+        ]);
+    } catch (e) {
+        console.error('Home grid loading error:', e);
+    }
 }
 
 async function loadLatestGrid(container = elements.latestGrid) {
     if (!container) return;
     try {
         const url = `${API_BASE}/manga?limit=12&includes%5B%5D=cover_art&order%5BlatestUploadedChapter%5D=desc&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.data && data.data.length > 0) {
+        const data = await fetchWithFallback(url);
+        if (data && data.data && data.data.length > 0) {
             renderMangaCards(container, data.data);
             return;
         }
     } catch (e) {}
 
+    renderFeaturedFallbackCards(container);
+}
+
+async function loadTrendingGrid() {
+    if (!elements.trendingGrid) return;
     try {
-        const pyRes = await fetch('/api/category/latest');
-        const pyData = await pyRes.json();
-        if (pyData.titles && pyData.titles.length > 0) {
-            renderFallbackSearchCards(container, pyData);
+        const url = `${API_BASE}/manga?limit=18&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
+        const data = await fetchWithFallback(url);
+        if (data && data.data && data.data.length > 0) {
+            state.heroManga = data.data[0];
+            renderHeroBanner(data.data[0]);
+            renderMangaCards(elements.trendingGrid, data.data);
             return;
         }
     } catch (e) {}
 
-    container.innerHTML = `<div class="col-12 text-muted small py-3">Latest items updating...</div>`;
-}
-
-async function loadTrendingGrid() {
-    try {
-        const url = `${API_BASE}/manga?limit=18&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.data && data.data.length > 0) {
-            state.heroManga = data.data[0];
-            renderHeroBanner(data.data[0]);
-            renderMangaCards(elements.trendingGrid, data.data);
-        } else {
-            loadTrendingFallback();
-        }
-    } catch (e) {
-        loadTrendingFallback();
-    }
-}
-
-async function loadTrendingFallback() {
-    try {
-        const pyRes = await fetch('/api/search?q=popular');
-        const pyData = await pyRes.json();
-        if (pyData.titles && pyData.titles.length > 0) {
-            renderFallbackSearchCards(elements.trendingGrid, pyData);
-        }
-    } catch (e) {}
+    renderFeaturedFallbackCards(elements.trendingGrid);
 }
 
 async function loadCategoryGrid(genreKey, container) {
@@ -570,28 +642,21 @@ async function loadCategoryGrid(genreKey, container) {
     }
 
     const tagId = GENRE_TAGS[genreKey];
-    if (!tagId) return;
+    if (!tagId) {
+        renderFeaturedFallbackCards(container);
+        return;
+    }
 
     try {
         const url = `${API_BASE}/manga?limit=6&includedTags%5B%5D=${tagId}&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.data && data.data.length > 0) {
+        const data = await fetchWithFallback(url);
+        if (data && data.data && data.data.length > 0) {
             renderMangaCards(container, data.data);
             return;
         }
     } catch (e) {}
 
-    try {
-        const pyRes = await fetch(`/api/category/${genreKey}`);
-        const pyData = await pyRes.json();
-        if (pyData.titles && pyData.titles.length > 0) {
-            renderFallbackSearchCards(container, pyData);
-            return;
-        }
-    } catch (e) {}
-
-    container.innerHTML = `<div class="col-12 text-muted small py-3">Category items updating...</div>`;
+    renderFeaturedFallbackCards(container);
 }
 
 function renderHeroBanner(manga) {
@@ -615,34 +680,15 @@ async function performSearch(query) {
     try {
         const cleanQuery = query.replace(/[^\w\s-]/gi, '').trim();
         const url = `${API_BASE}/manga?title=${encodeURIComponent(cleanQuery || query)}&limit=24&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
-        const response = await fetch(url);
-        const data = await response.json();
+        const data = await fetchWithFallback(url);
 
-        if (data.data && data.data.length > 0) {
+        if (data && data.data && data.data.length > 0) {
             renderMangaCards(elements.searchResultsGrid, data.data);
         } else {
-            try {
-                const pyRes = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-                const pyData = await pyRes.json();
-                if (pyData.titles && pyData.titles.length > 0) {
-                    renderFallbackSearchCards(elements.searchResultsGrid, pyData);
-                    return;
-                }
-            } catch (e) {}
-
             elements.searchResultsGrid.innerHTML = `<div class="col-12 text-center text-muted py-5">No manga found for "${escapeHtml(query)}". Try another search term!</div>`;
         }
     } catch (err) {
         console.error('Search error:', err);
-        try {
-            const pyRes = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-            const pyData = await pyRes.json();
-            if (pyData.titles && pyData.titles.length > 0) {
-                renderFallbackSearchCards(elements.searchResultsGrid, pyData);
-                return;
-            }
-        } catch (e) {}
-
         elements.searchResultsGrid.innerHTML = `<div class="col-12 text-center text-muted py-4">Search returned no items. Please refine your search term.</div>`;
     }
 }
@@ -670,10 +716,9 @@ function renderFallbackSearchCards(container, data) {
 async function handleSearchAutocomplete(query) {
     try {
         const url = `${API_BASE}/manga?title=${encodeURIComponent(query)}&limit=6&includes%5B%5D=cover_art&contentRating%5B%5D=safe&contentRating%5B%5D=suggestive`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await fetchWithFallback(url, 4000);
 
-        if (data.data && data.data.length > 0) {
+        if (data && data.data && data.data.length > 0) {
             elements.searchPopup.innerHTML = data.data.map(m => {
                 const title = m.attributes.title.en || Object.values(m.attributes.title)[0] || 'Untitled';
                 const coverUrl = getCoverUrl(m, '256');
@@ -774,19 +819,10 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
     // 1. Try Direct UUID fetch
     if (isUuid) {
         try {
-            const res = await fetch(`${API_BASE}/manga/${trimmed}?includes%5B%5D=cover_art`);
-            const data = await res.json();
-            if (data.data) {
+            const url = `${API_BASE}/manga/${trimmed}?includes%5B%5D=cover_art`;
+            const data = await fetchWithFallback(url);
+            if (data && data.data) {
                 loadMangaDetails(data.data);
-                return;
-            }
-        } catch (e) {}
-
-        try {
-            const pyRes = await fetch(`/api/manga/${trimmed}`);
-            const pyData = await pyRes.json();
-            if (pyData.data) {
-                loadMangaDetails(pyData.data);
                 return;
             }
         } catch (e) {}
@@ -794,25 +830,11 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
 
     // 2. Title Search resolution
     try {
-        const searchRes = await fetch(`${API_BASE}/manga?title=${encodeURIComponent(trimmed)}&limit=5&includes%5B%5D=cover_art`);
-        const searchData = await searchRes.json();
-        if (searchData.data && searchData.data.length > 0) {
+        const searchUrl = `${API_BASE}/manga?title=${encodeURIComponent(trimmed)}&limit=5&includes%5B%5D=cover_art`;
+        const searchData = await fetchWithFallback(searchUrl);
+        if (searchData && searchData.data && searchData.data.length > 0) {
             loadMangaDetails(searchData.data[0]);
             return;
-        }
-    } catch (e) {}
-
-    try {
-        const pySearchRes = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`);
-        const pySearchData = await pySearchRes.json();
-        if (pySearchData.links && pySearchData.links.length > 0) {
-            const resolvedId = pySearchData.links[0];
-            const detailRes = await fetch(`/api/manga/${resolvedId}`);
-            const detailData = await detailRes.json();
-            if (detailData.data) {
-                loadMangaDetails(detailData.data);
-                return;
-            }
         }
     } catch (e) {}
 
