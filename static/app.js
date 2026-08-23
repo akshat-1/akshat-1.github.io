@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v21.0
- * Robust Latest Releases Loader & Multi-Source Category Engine
+ * Production Manga Reader Engine v22.0
+ * Multi-Batch Offset Chapter Pagination & Interactive Chapter Range Selector
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -27,6 +27,7 @@ const state = {
     currentView: 'home',
     heroManga: null,
     currentManga: null,
+    allChapterList: [],
     currentChapterList: [],
     currentChapterIndex: -1,
     chapterSortAsc: true,
@@ -78,6 +79,7 @@ const elements = {
     relatedSection: document.getElementById('related-section'),
     relatedGrid: document.getElementById('related-grid'),
     chapterList: document.getElementById('chapter-list'),
+    chapterRangePills: document.getElementById('chapter-range-pills'),
     chapterSearch: document.getElementById('chapter-search'),
     chapterLangSelect: document.getElementById('chapter-lang-select'),
     sortChaptersBtn: document.getElementById('sort-chapters-btn'),
@@ -136,7 +138,7 @@ function handleCoverFailover(img, mId, coverFile) {
     }
 }
 
-// Convert Image URL to Base64 Data URL (Proxy Fallback + Direct Blob)
+// Convert Image URL to Base64 Data URL
 async function getBase64DataUrl(imageUrl) {
     if (!imageUrl) return null;
 
@@ -378,7 +380,7 @@ function shareMangaLink() {
     }
 }
 
-// Concurrently Fetch All Base64 Chapter Pages for PDF Generation
+// Download Chapter as PDF
 async function downloadChapterPDF() {
     if (!state.readerPages || state.readerPages.length === 0) {
         showToast('No pages available to download.');
@@ -493,7 +495,6 @@ async function loadLatestGrid(container = elements.latestGrid) {
         }
     } catch (e) {}
 
-    // Fallback to Python server API if client fetch yields 0 items or throws error
     try {
         const pyRes = await fetch('/api/category/latest');
         const pyData = await pyRes.json();
@@ -743,7 +744,6 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
     const trimmed = mangaIdOrQuery.trim();
     const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(trimmed);
 
-    // 1. Try Direct UUID fetch
     if (isUuid) {
         try {
             const res = await fetch(`${API_BASE}/manga/${trimmed}?includes%5B%5D=cover_art`);
@@ -764,7 +764,6 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
         } catch (e) {}
     }
 
-    // 2. Title Search resolution
     try {
         const searchRes = await fetch(`${API_BASE}/manga?title=${encodeURIComponent(trimmed)}&limit=5&includes%5B%5D=cover_art`);
         const searchData = await searchRes.json();
@@ -791,6 +790,7 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
     showToast('Unable to load details for selected title.');
 }
 
+// Multi-Batch Paginated Chapter Resolver
 async function loadMangaDetails(manga) {
     if (!manga) return;
     state.currentManga = manga;
@@ -811,18 +811,29 @@ async function loadMangaDetails(manga) {
     ).join('');
 
     showView('details');
-    elements.chapterList.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-2 text-muted">Resolving chapters...</div></div>`;
+    elements.chapterList.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-danger" role="status"></div><div class="mt-2 text-muted">Resolving all chapters...</div></div>`;
 
     loadRelatedSeries(title);
 
     try {
-        const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&order%5Bchapter%5D=asc`;
-        const res = await fetch(feedUrl);
-        const data = await res.json();
-        
-        let readable = (data.data || []).filter(c => (c.attributes.pages || 0) > 2);
-        if (readable.length === 0) readable = (data.data || []).filter(c => (c.attributes.pages || 0) > 0);
-        if (readable.length === 0) readable = data.data || [];
+        let allFeedChapters = [];
+        let offset = 0;
+
+        // Loop offset pagination to fetch all chapter batches (up to 2000 items)
+        for (let i = 0; i < 4; i++) {
+            const feedUrl = `${API_BASE}/manga/${mId}/feed?limit=500&offset=${offset}&order%5Bchapter%5D=asc`;
+            const res = await fetch(feedUrl);
+            const data = await res.json();
+            const batch = data.data || [];
+            if (batch.length === 0) break;
+            allFeedChapters = allFeedChapters.concat(batch);
+            offset += batch.length;
+            if (batch.length < 500) break;
+        }
+
+        let readable = allFeedChapters.filter(c => (c.attributes.pages || 0) > 2);
+        if (readable.length === 0) readable = allFeedChapters.filter(c => (c.attributes.pages || 0) > 0);
+        if (readable.length === 0) readable = allFeedChapters;
 
         if (readable.length > 0) {
             readable.sort((a, b) => {
@@ -841,7 +852,10 @@ async function loadMangaDetails(manga) {
                 }
             });
 
+            state.allChapterList = filtered;
             state.currentChapterList = filtered;
+
+            renderChapterRangePills(filtered);
             renderChapterList();
         } else {
             await loadFallbackChapters(mId, title);
@@ -850,6 +864,58 @@ async function loadMangaDetails(manga) {
         console.error('Failed to load chapters:', err);
         await loadFallbackChapters(mId, title);
     }
+}
+
+// Chapter Range Selector Pills Generator
+function renderChapterRangePills(totalChapters) {
+    if (!elements.chapterRangePills) return;
+
+    if (totalChapters.length <= 50) {
+        elements.chapterRangePills.style.display = 'none';
+        return;
+    }
+
+    let maxNum = 0;
+    totalChapters.forEach(c => {
+        const num = parseFloat(c.attributes.chapter) || 0;
+        if (num > maxNum) maxNum = num;
+    });
+
+    const rangePills = [{ label: `All (${totalChapters.length})`, min: 0, max: 999999 }];
+    const step = 100;
+    
+    for (let start = 1; start <= maxNum; start += step) {
+        const end = start + step - 1;
+        rangePills.push({
+            label: `Ch. ${start} - ${end}`,
+            min: start,
+            max: end
+        });
+    }
+
+    elements.chapterRangePills.innerHTML = rangePills.map((r, idx) => `
+        <button class="genre-pill ${idx === 0 ? 'active' : ''}" onclick="filterChapterRange(${r.min}, ${r.max}, this)">
+            ${r.label}
+        </button>
+    `).join('');
+    elements.chapterRangePills.style.display = 'flex';
+}
+
+function filterChapterRange(minNum, maxNum, btnElement) {
+    const buttons = elements.chapterRangePills.querySelectorAll('.genre-pill');
+    buttons.forEach(b => b.classList.remove('active'));
+    if (btnElement) btnElement.classList.add('active');
+
+    if (minNum === 0 && maxNum === 999999) {
+        state.currentChapterList = [...state.allChapterList];
+    } else {
+        state.currentChapterList = state.allChapterList.filter(c => {
+            const num = parseFloat(c.attributes.chapter) || 0;
+            return num >= minNum && num <= maxNum;
+        });
+    }
+
+    renderChapterList();
 }
 
 async function loadFallbackChapters(mId, title) {

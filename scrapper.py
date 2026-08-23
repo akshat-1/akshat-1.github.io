@@ -245,7 +245,7 @@ def get_category_manga(genre_key: str):
 
 def get_chapters(manga_id_or_url: str):
     """
-    Fetch readable chapter list sorted numerically (Chapter 1, 2, 3... 14) with real page filtering (pages > 2).
+    Fetch readable chapter list sorted numerically (Chapter 1, 2, 3... 1100+) with multi-page offset pagination.
     Returns: (list_of_chapter_ids, list_of_chapter_titles)
     """
     links = []
@@ -257,12 +257,27 @@ def get_chapters(manga_id_or_url: str):
 
     try:
         url = f"{BASE_MANGADEX}/manga/{manga_id}/feed"
-        params = {
-            "limit": 500,
-            "order[chapter]": "asc"
-        }
-        res = requests.get(url, params=params, headers=HEADERS, timeout=10)
-        data = res.json().get("data", []) if res.status_code == 200 else []
+        data = []
+        offset = 0
+
+        # Paginate offset up to 2000 items (4 x 500 batch requests)
+        for _ in range(4):
+            params = {
+                "limit": 500,
+                "offset": offset,
+                "order[chapter]": "asc"
+            }
+            res = requests.get(url, params=params, headers=HEADERS, timeout=10)
+            if res.status_code == 200:
+                batch = res.json().get("data", [])
+                if not batch:
+                    break
+                data.extend(batch)
+                offset += len(batch)
+                if len(batch) < 500:
+                    break
+            else:
+                break
 
         readable = [ch for ch in data if ch.get("attributes", {}).get("pages", 0) > 2]
         if not readable:
