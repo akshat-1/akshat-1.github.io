@@ -1,6 +1,6 @@
 /**
- * Production Manga Reader Engine v6.0
- * Multi-Category Grids & Robust Description Resolution
+ * Production Manga Reader Engine v7.0
+ * Robust UUID/Title Detail Resolution & Canonical Cover Fallbacks
  */
 
 const API_BASE = 'https://api.mangadex.org';
@@ -95,7 +95,7 @@ const elements = {
     toastContainer: document.getElementById('toast-container')
 };
 
-// Safe Description Helper (Fixes TypeError when description is empty object/null)
+// Safe Helpers
 function getMangaDescription(attr) {
     if (!attr || !attr.description) return 'No description available for this title.';
     if (typeof attr.description === 'string') return attr.description;
@@ -103,6 +103,29 @@ function getMangaDescription(attr) {
     const values = Object.values(attr.description);
     if (values.length > 0 && values[0]) return values[0];
     return 'No description available for this title.';
+}
+
+function getCoverUrl(manga, size = '256') {
+    if (!manga) return 'https://via.placeholder.com/200x300?text=No+Cover';
+    const mId = manga.id;
+    let coverFile = '';
+    if (manga.relationships) {
+        const rel = manga.relationships.find(r => r.type === 'cover_art');
+        if (rel && rel.attributes) coverFile = rel.attributes.fileName;
+    }
+    if (!coverFile) return 'https://via.placeholder.com/200x300?text=No+Cover';
+    if (size === 'original') return `${COVER_BASE}/${mId}/${coverFile}`;
+    return `${COVER_BASE}/${mId}/${coverFile}.${size}.jpg`;
+}
+
+function handleCoverFailover(img, mId, coverFile) {
+    if (img.getAttribute('data-failed-cover')) {
+        img.onerror = null;
+        img.src = 'https://via.placeholder.com/200x300?text=Cover+Unavailable';
+    } else {
+        img.setAttribute('data-failed-cover', 'true');
+        img.src = `${COVER_BASE}/${mId}/${coverFile}`;
+    }
 }
 
 // Initialize Application
@@ -259,7 +282,7 @@ function showView(viewName) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Load Home Page Grids
+// Load Home Grids
 async function loadAllHomeGrids() {
     renderSkeletons(elements.trendingGrid, 12);
     renderSkeletons(elements.actionGrid, 6);
@@ -267,7 +290,6 @@ async function loadAllHomeGrids() {
     renderSkeletons(elements.fantasyGrid, 6);
     renderSkeletons(elements.romanceGrid, 6);
 
-    // 1. Trending
     try {
         const url = `${API_BASE}/manga?limit=18&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`;
         const res = await fetch(url);
@@ -278,13 +300,9 @@ async function loadAllHomeGrids() {
         }
     } catch (e) { console.error('Trending load error:', e); }
 
-    // 2. Action
     loadCategoryGrid('action', elements.actionGrid);
-    // 3. Adventure
     loadCategoryGrid('adventure', elements.adventureGrid);
-    // 4. Fantasy
     loadCategoryGrid('fantasy', elements.fantasyGrid);
-    // 5. Romance
     loadCategoryGrid('romance', elements.romanceGrid);
 }
 
@@ -303,7 +321,6 @@ async function loadCategoryGrid(genreKey, container) {
         }
     } catch (e) {}
 
-    // Fallback to Flask Category API if client fetch yielded 0 or failed
     try {
         const pyRes = await fetch(`/api/category/${genreKey}`);
         const pyData = await pyRes.json();
@@ -327,7 +344,7 @@ function renderHeroBanner(manga) {
     elements.heroStartBtn.onclick = () => loadMangaDetails(manga);
 }
 
-// Robust Search Engine with Fallback
+// Search Engine with Fallback
 async function performSearch(query) {
     elements.searchSection.style.display = 'block';
     elements.searchTitle.textContent = `Search Results for "${query}"`;
@@ -398,12 +415,7 @@ async function handleSearchAutocomplete(query) {
         if (data.data && data.data.length > 0) {
             elements.searchPopup.innerHTML = data.data.map(m => {
                 const title = m.attributes.title.en || Object.values(m.attributes.title)[0] || 'Untitled';
-                let coverFile = '';
-                if (m.relationships) {
-                    const rel = m.relationships.find(r => r.type === 'cover_art');
-                    if (rel && rel.attributes) coverFile = rel.attributes.fileName;
-                }
-                const coverUrl = coverFile ? `${COVER_BASE}/${m.id}/${coverFile}.256.jpg` : 'https://via.placeholder.com/40x55';
+                const coverUrl = getCoverUrl(m, '256');
 
                 return `
                     <div class="search-popup-item" onclick="loadMangaDetailsById('${m.id}')">
@@ -458,21 +470,19 @@ function renderMangaCards(container, mangaList) {
         const attr = manga.attributes || {};
         const title = (attr.title && (attr.title.en || Object.values(attr.title)[0])) || 'Untitled';
         const status = attr.status || 'Unknown';
+        const coverUrl = getCoverUrl(manga, '512');
 
         let coverFile = '';
         if (manga.relationships) {
             const rel = manga.relationships.find(r => r.type === 'cover_art');
             if (rel && rel.attributes) coverFile = rel.attributes.fileName;
         }
-        const coverUrl = coverFile
-            ? `${COVER_BASE}/${mId}/${coverFile}.256.jpg`
-            : 'https://via.placeholder.com/200x300?text=No+Cover';
 
         const card = document.createElement('div');
         card.className = 'manga-card';
         card.innerHTML = `
             <div class="manga-cover-wrapper">
-                <img src="${coverUrl}" class="manga-cover" alt="${escapeHtml(title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x300?text=Cover+Unavailable'">
+                <img src="${coverUrl}" class="manga-cover" alt="${escapeHtml(title)}" loading="lazy" onerror="handleCoverFailover(this, '${mId}', '${coverFile}')">
                 <span class="manga-badge">${status}</span>
             </div>
             <div class="manga-info">
@@ -484,27 +494,39 @@ function renderMangaCards(container, mangaList) {
             </div>
         `;
 
-        card.addEventListener('click', () => {
-            try {
-                loadMangaDetails(manga);
-            } catch (err) {
-                console.error('Click error loading details:', err);
-                loadMangaDetailsById(mId);
-            }
-        });
+        card.addEventListener('click', () => loadMangaDetailsById(mId));
         container.appendChild(card);
     });
 }
 
-async function loadMangaDetailsById(mangaId) {
+// Robust Manga Details Resolver by UUID or Title
+async function loadMangaDetailsById(mangaIdOrQuery) {
     hideSearchPopup();
+    if (!mangaIdOrQuery) return;
+
+    const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(mangaIdOrQuery.trim());
+
     try {
-        const res = await fetch(`${API_BASE}/manga/${mangaId}?includes[]=cover_art`);
-        const data = await res.json();
-        if (data.data) {
-            loadMangaDetails(data.data);
+        if (isUuid) {
+            const res = await fetch(`${API_BASE}/manga/${mangaIdOrQuery.trim()}?includes[]=cover_art`);
+            const data = await res.json();
+            if (data.data) {
+                loadMangaDetails(data.data);
+                return;
+            }
         }
-    } catch (e) { console.error('Failed details by ID:', e); }
+
+        const searchRes = await fetch(`${API_BASE}/manga?title=${encodeURIComponent(mangaIdOrQuery.trim())}&limit=5&includes[]=cover_art`);
+        const searchData = await searchRes.json();
+        if (searchData.data && searchData.data.length > 0) {
+            loadMangaDetails(searchData.data[0]);
+        } else {
+            showToast('Unable to load details for selected title.');
+        }
+    } catch (e) {
+        console.error('Failed to load manga details:', e);
+        showToast('Error loading manga details.');
+    }
 }
 
 async function loadMangaDetails(manga) {
@@ -513,15 +535,7 @@ async function loadMangaDetails(manga) {
     const mId = manga.id;
     const attr = manga.attributes || {};
     const title = (attr.title && (attr.title.en || Object.values(attr.title)[0])) || 'Untitled';
-
-    let coverFile = '';
-    if (manga.relationships) {
-        const rel = manga.relationships.find(r => r.type === 'cover_art');
-        if (rel && rel.attributes) coverFile = rel.attributes.fileName;
-    }
-    const coverUrl = coverFile
-        ? `${COVER_BASE}/${mId}/${coverFile}`
-        : 'https://via.placeholder.com/200x300?text=No+Cover';
+    const coverUrl = getCoverUrl(manga, 'original');
 
     elements.detailCover.src = coverUrl;
     elements.detailTitle.textContent = title;
@@ -596,12 +610,7 @@ async function loadRelatedSeries(currentTitle) {
         if (related.length > 0) {
             elements.relatedGrid.innerHTML = related.slice(0, 4).map(m => {
                 const title = m.attributes.title.en || Object.values(m.attributes.title)[0] || 'Untitled';
-                let coverFile = '';
-                if (m.relationships) {
-                    const rel = m.relationships.find(r => r.type === 'cover_art');
-                    if (rel && rel.attributes) coverFile = rel.attributes.fileName;
-                }
-                const coverUrl = coverFile ? `${COVER_BASE}/${m.id}/${coverFile}.256.jpg` : 'https://via.placeholder.com/200x300';
+                const coverUrl = getCoverUrl(m, '256');
                 
                 return `
                     <div class="col-6 col-md-3">
