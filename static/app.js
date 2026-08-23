@@ -492,45 +492,57 @@ async function downloadChapterPDF() {
 }
 
 // Reliable Fetch with CORS Proxy Fallbacks
-async function fetchWithFallback(url, timeoutMs = 8000) {
+async function fetchWithFallback(url, timeoutMs = 10000) {
     try {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timer);
         if (res.status === 200) {
-            const data = await res.json();
-            if (data) return data;
+            const text = await res.text();
+            if (text && text.trim().startsWith('{')) {
+                const data = JSON.parse(text);
+                if (data) return data;
+            }
         }
     } catch (e) {}
 
-    // CORS Proxy 1: corsproxy.io
+    // CORS Proxy 1: api.allorigins.win
     try {
-        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
         if (res.status === 200) {
-            const data = await res.json();
-            if (data) return data;
+            const text = await res.text();
+            if (text && text.trim().startsWith('{')) {
+                const data = JSON.parse(text);
+                if (data) return data;
+            }
         }
     } catch (e) {}
 
-    // CORS Proxy 2: allorigins.win
+    // CORS Proxy 2: corsproxy.io
     try {
-        const proxyUrl2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-        const res = await fetch(proxyUrl2, { signal: AbortSignal.timeout(6000) });
+        const proxyUrl2 = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl2, { signal: AbortSignal.timeout(8000) });
         if (res.status === 200) {
-            const data = await res.json();
-            if (data) return data;
+            const text = await res.text();
+            if (text && text.trim().startsWith('{')) {
+                const data = JSON.parse(text);
+                if (data) return data;
+            }
         }
     } catch (e) {}
 
     // CORS Proxy 3: codetabs
     try {
         const proxyUrl3 = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
-        const res = await fetch(proxyUrl3, { signal: AbortSignal.timeout(6000) });
+        const res = await fetch(proxyUrl3, { signal: AbortSignal.timeout(8000) });
         if (res.status === 200) {
-            const data = await res.json();
-            if (data) return data;
+            const text = await res.text();
+            if (text && text.trim().startsWith('{')) {
+                const data = JSON.parse(text);
+                if (data) return data;
+            }
         }
     } catch (e) {}
 
