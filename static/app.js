@@ -875,6 +875,7 @@ async function loadMangaDetails(manga) {
         state.rawFeedChapters = allFeedChapters;
 
         if (allFeedChapters.length > 0) {
+            populateLanguageDropdown(allFeedChapters);
             processAndRenderChapters();
         } else {
             await loadFallbackChapters(mId, title);
@@ -885,6 +886,68 @@ async function loadMangaDetails(manga) {
     }
 }
 
+// Dynamically populate language options based on languages present in raw chapters feed
+function populateLanguageDropdown(rawChapters) {
+    if (!elements.chapterLangSelect) return;
+
+    const LANG_NAMES = {
+        en: 'English 🇬🇧',
+        es: 'Spanish 🇪🇸',
+        'es-la': 'Spanish (LATAM) 🇲🇽',
+        'pt-br': 'Portuguese (BR) 🇧🇷',
+        pt: 'Portuguese 🇵🇹',
+        ja: 'Japanese 🇯🇵',
+        fr: 'French 🇫🇷',
+        de: 'German 🇩🇪',
+        it: 'Italian 🇮🇹',
+        ru: 'Russian 🇷🇺',
+        vi: 'Vietnamese 🇻🇳',
+        id: 'Indonesian 🇮🇩',
+        th: 'Thai 🇹🇭',
+        ar: 'Arabic 🇸🇦',
+        ca: 'Catalan 🏴',
+        el: 'Greek 🇬🇷',
+        he: 'Hebrew 🇮🇱',
+        pl: 'Polish 🇵🇱',
+        tr: 'Turkish 🇹🇷',
+        hi: 'Hindi 🇮🇳',
+        ko: 'Korean 🇰🇷',
+        zh: 'Chinese 🇨🇳',
+        'zh-hk': 'Chinese (HK) 🇭🇰',
+        uk: 'Ukrainian 🇺🇦',
+        hu: 'Hungarian 🇭🇺',
+        az: 'Azerbaijani 🇦🇿',
+        kk: 'Kazakh 🇰🇿',
+        ro: 'Romanian 🇷🇴'
+    };
+
+    const langCounts = new Map();
+    (rawChapters || []).forEach(ch => {
+        const lang = (ch.attributes && ch.attributes.translatedLanguage || 'en').toLowerCase();
+        langCounts.set(lang, (langCounts.get(lang) || 0) + 1);
+    });
+
+    const currentSelected = (elements.chapterLangSelect.value || 'all').toLowerCase();
+
+    let optionsHtml = `<option value="all" ${currentSelected === 'all' ? 'selected' : ''}>🌐 All Languages (${rawChapters.length})</option>`;
+
+    // Sort languages: EN first if present, then by count descending
+    const sortedLangs = Array.from(langCounts.keys()).sort((a, b) => {
+        if (a === 'en') return -1;
+        if (b === 'en') return 1;
+        return langCounts.get(b) - langCounts.get(a);
+    });
+
+    sortedLangs.forEach(lang => {
+        const name = LANG_NAMES[lang] || lang.toUpperCase();
+        const count = langCounts.get(lang);
+        const isSelected = (currentSelected === lang);
+        optionsHtml += `<option value="${lang}" ${isSelected ? 'selected' : ''}>${name} (${count})</option>`;
+    });
+
+    elements.chapterLangSelect.innerHTML = optionsHtml;
+}
+
 // Process raw chapters into language-deduplicated list and render range tabs
 function processAndRenderChapters() {
     if (!state.rawFeedChapters || state.rawFeedChapters.length === 0) {
@@ -893,10 +956,7 @@ function processAndRenderChapters() {
         return;
     }
 
-    // Filter out placeholder notice pages (pages <= 2), fallback to pages > 0 if needed
-    let validFeed = state.rawFeedChapters.filter(c => (c.attributes && c.attributes.pages || 0) > 2);
-    if (validFeed.length === 0) validFeed = state.rawFeedChapters.filter(c => (c.attributes && c.attributes.pages || 0) > 0);
-    if (validFeed.length === 0) validFeed = state.rawFeedChapters;
+    let validFeed = state.rawFeedChapters;
 
     // Currently selected language from dropdown
     const selectedLang = (elements.chapterLangSelect ? elements.chapterLangSelect.value : 'all').toLowerCase();
@@ -1344,14 +1404,29 @@ async function loadChapter(index) {
         elements.pageCounter.textContent = `Total Pages: ${state.readerPages.length}`;
         renderPages();
     } else {
-        elements.readerPagesContainer.innerHTML = `
-            <div class="text-center text-muted py-5">
-                <p class="mb-3">Unable to retrieve chapter pages from CDN.</p>
-                <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="loadChapter(${index})">
-                    <i class="fa-solid fa-rotate-right me-1"></i> Retry Loading Chapter
-                </button>
-            </div>
-        `;
+        const extUrl = chapter.attributes ? chapter.attributes.externalUrl : null;
+        if (extUrl) {
+            elements.pageCounter.textContent = `Official External Release`;
+            elements.readerPagesContainer.innerHTML = `
+                <div class="text-center text-light py-5">
+                    <i class="fa-solid fa-arrow-up-right-from-square text-danger fa-3x mb-3"></i>
+                    <h4 class="fw-bold mb-2">Official Publisher Release</h4>
+                    <p class="text-muted mb-4">Chapter ${chNum} is officially published on the publisher's platform.</p>
+                    <a href="${extUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-danger btn-lg rounded-pill px-4">
+                        <i class="fa-solid fa-book-open me-2"></i> Read Chapter ${chNum} on Publisher Site
+                    </a>
+                </div>
+            `;
+        } else {
+            elements.readerPagesContainer.innerHTML = `
+                <div class="text-center text-muted py-5">
+                    <p class="mb-3">Unable to retrieve chapter pages from CDN.</p>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill" onclick="loadChapter(${index})">
+                        <i class="fa-solid fa-rotate-right me-1"></i> Retry Loading Chapter
+                    </button>
+                </div>
+            `;
+        }
     }
 }
 
