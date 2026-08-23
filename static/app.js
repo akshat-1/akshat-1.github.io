@@ -498,7 +498,7 @@ async function fetchWithFallback(url, timeoutMs = 8000) {
         const timer = setTimeout(() => controller.abort(), timeoutMs);
         const res = await fetch(url, { signal: controller.signal });
         clearTimeout(timer);
-        if (res.ok) {
+        if (res.status === 200) {
             const data = await res.json();
             if (data) return data;
         }
@@ -508,7 +508,7 @@ async function fetchWithFallback(url, timeoutMs = 8000) {
     try {
         const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
         const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
-        if (res.ok) {
+        if (res.status === 200) {
             const data = await res.json();
             if (data) return data;
         }
@@ -518,7 +518,17 @@ async function fetchWithFallback(url, timeoutMs = 8000) {
     try {
         const proxyUrl2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
         const res = await fetch(proxyUrl2, { signal: AbortSignal.timeout(6000) });
-        if (res.ok) {
+        if (res.status === 200) {
+            const data = await res.json();
+            if (data) return data;
+        }
+    } catch (e) {}
+
+    // CORS Proxy 3: codetabs
+    try {
+        const proxyUrl3 = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+        const res = await fetch(proxyUrl3, { signal: AbortSignal.timeout(6000) });
+        if (res.status === 200) {
             const data = await res.json();
             if (data) return data;
         }
@@ -845,6 +855,7 @@ async function loadMangaDetailsById(mangaIdOrQuery) {
 async function loadMangaDetails(manga) {
     if (!manga) return;
     state.currentManga = manga;
+    state.selectedLanguage = 'all';
     const mId = manga.id;
     const attr = manga.attributes || {};
     const title = (attr.title && (attr.title.en || Object.values(attr.title)[0])) || 'Untitled';
