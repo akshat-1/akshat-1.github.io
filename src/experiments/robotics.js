@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 
-import './robotics.css';
-
 const ARM = Object.freeze({
     baseHeight: 0.62,
     links: Object.freeze([0.96, 0.86, 0.58]),

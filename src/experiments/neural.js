@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 
-import './neural.css';
-
 const INPUT_VALUES = Object.freeze([0.72, -0.36, 0.55]);
 const TARGET_VALUE = 0.68;
 const LEARNING_RATE = 0.08;

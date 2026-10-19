@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { portfolio } from './data/portfolio.js';
 import { createRoboticsLab } from './experiments/robotics.js';
 import { createNeuralLab } from './experiments/neural.js';
-import './styles.css';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

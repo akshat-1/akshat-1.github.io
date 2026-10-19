@@ -40,4 +40,17 @@ if (!existsSync(join(dist, 'Akshat_Porwal_Resume.pdf'))) {
     throw new Error('The resume PDF was not copied into dist.');
 }
 
-console.log(`Smoke test passed: ${requiredMarkers.length} portfolio markers, resume asset, and legacy cleanup verified.`);
+const sourceIndex = readFileSync(join(root, 'index.html'), 'utf8');
+for (const marker of ['./src/styles.css', './src/experiments/robotics.css', './src/experiments/neural.css', './vendor/three.module.js']) {
+    if (!sourceIndex.includes(marker)) {
+        throw new Error(`Branch-root fallback is missing ${marker}.`);
+    }
+}
+
+for (const file of ['Akshat_Porwal_Resume.pdf', 'assets/profile-placeholder.svg', 'vendor/three.module.js']) {
+    if (!existsSync(join(root, file))) {
+        throw new Error(`Branch-root fallback asset is missing ${file}.`);
+    }
+}
+
+console.log(`Smoke test passed: ${requiredMarkers.length} portfolio markers, compiled assets, branch-root fallback, and legacy cleanup verified.`);

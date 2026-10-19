@@ -2,7 +2,7 @@
 
 An interactive, dark-themed portfolio for Akshat Porwal, focused on AI, robotics, computer vision, security automation, and systems engineering.
 
-The site is a static Vite application designed for GitHub Pages. It includes procedural Three.js scenes after each major section plus two technical browser-native labs:
+The site is a static Vite application designed for GitHub Pages. It includes procedural Three.js scenes after each major section plus two technical browser-native labs. The source entrypoint also contains a branch-root fallback: if GitHub Pages is still configured for `main`/root instead of GitHub Actions, it can load the stylesheet, vendored Three.js runtime, profile asset, and resume without the Vite bundle.
 
 - A 5DOF robotic arm with draggable target, damped least-squares inverse kinematics, Jacobian, and live transformation-matrix readouts.
 - A multilayer perceptron cross-section where a user can select a perceptron and step through forward and backward computations, gradients, and weight updates.
@@ -57,7 +57,7 @@ Open `http://localhost:8080`.
 
 Push to `main`. `.github/workflows/deploy.yml` installs the pinned Node.js version, runs `npm ci`, builds `dist/`, and deploys that directory to GitHub Pages.
 
-The repository must have GitHub Pages configured to use **GitHub Actions** as its build and deployment source.
+The repository should have GitHub Pages configured to use **GitHub Actions** as its build and deployment source. The committed branch-root fallback keeps the page usable while that setting is being changed.
 
 ## Content and assets
 
@@ -83,6 +83,8 @@ The repository must have GitHub Pages configured to use **GitHub Actions** as it
 ├── public/
 │   ├── Akshat_Porwal_Resume.pdf
 │   └── assets/profile-placeholder.svg
+├── assets/                         # branch-root compatibility mirror
+├── vendor/                         # branch-root Three.js runtime
 ├── scripts/smoke-test.mjs
 ├── Dockerfile
 ├── package.json
