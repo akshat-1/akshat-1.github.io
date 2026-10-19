@@ -1,0 +1,395 @@
+.robotics-lab,
+.robotics-lab * {
+    box-sizing: border-box;
+}
+
+.robotics-lab {
+    --robotics-ink: #e8f0ff;
+    --robotics-muted: #93a2bf;
+    --robotics-faint: #63718d;
+    --robotics-panel: rgba(19, 29, 51, 0.86);
+    --robotics-panel-strong: #151f36;
+    --robotics-line: rgba(143, 171, 218, 0.18);
+    --robotics-blue: #66a7ff;
+    --robotics-cyan: #5de0db;
+    --robotics-amber: #ffbf69;
+    --robotics-red: #ff7f8d;
+    width: 100%;
+    max-width: 1440px;
+    margin: 0 auto;
+    overflow: hidden;
+    border: 1px solid var(--robotics-line);
+    border-radius: 24px;
+    color: var(--robotics-ink);
+    background:
+        radial-gradient(circle at 12% 0%, rgba(70, 132, 218, 0.18), transparent 34%),
+        linear-gradient(145deg, #0d1629 0%, #0a1020 64%, #0c1427 100%);
+    box-shadow: 0 24px 80px rgba(2, 8, 21, 0.36);
+    color-scheme: dark;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.robotics-lab button,
+.robotics-lab canvas {
+    font: inherit;
+}
+
+.robotics-lab__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 30px 32px 22px;
+}
+
+.robotics-lab__eyebrow {
+    margin: 0 0 8px;
+    color: var(--robotics-cyan);
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.robotics-lab__title {
+    margin: 0;
+    color: #f7faff;
+    font-size: clamp(1.55rem, 3vw, 2.35rem);
+    font-weight: 740;
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+}
+
+.robotics-lab__intro {
+    max-width: 640px;
+    margin: 12px 0 0;
+    color: var(--robotics-muted);
+    font-size: 0.92rem;
+    line-height: 1.55;
+}
+
+.robotics-lab__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    padding: 8px 11px;
+    border: 1px solid rgba(93, 224, 219, 0.28);
+    border-radius: 999px;
+    color: var(--robotics-cyan);
+    background: rgba(41, 116, 128, 0.16);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    white-space: nowrap;
+}
+
+.robotics-lab__status::before {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 12px currentColor;
+    content: "";
+}
+
+.robotics-lab__status[data-state="paused"] {
+    border-color: rgba(255, 191, 105, 0.32);
+    color: var(--robotics-amber);
+    background: rgba(130, 86, 30, 0.16);
+}
+
+.robotics-lab__status[data-state="fallback"] {
+    border-color: rgba(255, 127, 141, 0.3);
+    color: var(--robotics-red);
+    background: rgba(130, 36, 59, 0.16);
+}
+
+.robotics-lab__toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 32px 22px;
+}
+
+.robotics-lab__button {
+    min-height: 36px;
+    padding: 8px 14px;
+    border: 1px solid rgba(113, 164, 237, 0.36);
+    border-radius: 9px;
+    color: #dceaff;
+    background: rgba(76, 126, 200, 0.14);
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 700;
+    transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+}
+
+.robotics-lab__button:hover {
+    border-color: rgba(125, 192, 255, 0.72);
+    background: rgba(76, 126, 200, 0.26);
+    transform: translateY(-1px);
+}
+
+.robotics-lab__button:focus-visible,
+.robotics-lab__canvas:focus-visible {
+    outline: 2px solid var(--robotics-cyan);
+    outline-offset: 3px;
+}
+
+.robotics-lab__hint {
+    margin-left: 6px;
+    color: var(--robotics-faint);
+    font-size: 0.76rem;
+}
+
+.robotics-lab__content {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(310px, 0.85fr);
+    gap: 1px;
+    border-top: 1px solid var(--robotics-line);
+    background: var(--robotics-line);
+}
+
+.robotics-lab__viewport,
+.robotics-lab__readout {
+    min-width: 0;
+    background: rgba(9, 16, 31, 0.68);
+}
+
+.robotics-lab__viewport {
+    position: relative;
+    min-height: 480px;
+    overflow: hidden;
+}
+
+.robotics-lab__canvas {
+    display: block;
+    width: 100%;
+    height: clamp(460px, 64vh, 680px);
+    min-height: 460px;
+    touch-action: none;
+    cursor: grab;
+}
+
+.robotics-lab__canvas[data-dragging="true"] {
+    cursor: grabbing;
+}
+
+.robotics-lab__canvas[data-fallback="true"] {
+    display: none;
+}
+
+.robotics-lab__fallback {
+    display: grid;
+    place-items: center;
+    min-height: 480px;
+    padding: 36px;
+    color: var(--robotics-muted);
+    text-align: center;
+}
+
+.robotics-lab__fallback[hidden] {
+    display: none;
+}
+
+.robotics-lab__fallback-card {
+    max-width: 420px;
+    padding: 24px;
+    border: 1px solid rgba(255, 127, 141, 0.26);
+    border-radius: 16px;
+    background: rgba(116, 36, 57, 0.12);
+}
+
+.robotics-lab__fallback-title {
+    margin: 0 0 8px;
+    color: #ffd9dd;
+    font-size: 1rem;
+}
+
+.robotics-lab__fallback-copy {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.robotics-lab__legend {
+    position: absolute;
+    right: 18px;
+    bottom: 16px;
+    left: 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    pointer-events: none;
+}
+
+.robotics-lab__legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: rgba(216, 228, 250, 0.66);
+    font-size: 0.68rem;
+}
+
+.robotics-lab__legend-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--robotics-blue);
+    box-shadow: 0 0 8px currentColor;
+}
+
+.robotics-lab__legend-dot--target {
+    background: var(--robotics-cyan);
+}
+
+.robotics-lab__legend-dot--joint {
+    background: var(--robotics-amber);
+}
+
+.robotics-lab__readout {
+    display: flex;
+    min-height: 480px;
+    flex-direction: column;
+    padding: 22px;
+}
+
+.robotics-lab__readout-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.robotics-lab__readout-title {
+    margin: 0;
+    color: #f3f7ff;
+    font-size: 0.9rem;
+    font-weight: 740;
+}
+
+.robotics-lab__read-only {
+    color: var(--robotics-faint);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.robotics-lab__readout-scroll {
+    min-height: 0;
+    overflow: auto;
+    padding-right: 3px;
+}
+
+.robotics-lab__readout-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.robotics-lab__readout-card {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid rgba(143, 171, 218, 0.14);
+    border-radius: 12px;
+    background: rgba(22, 33, 58, 0.58);
+}
+
+.robotics-lab__readout-card--wide {
+    grid-column: 1 / -1;
+}
+
+.robotics-lab__readout-label {
+    margin: 0 0 9px;
+    color: var(--robotics-muted);
+    font-size: 0.63rem;
+    font-weight: 750;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.robotics-lab__readout-value {
+    min-height: 1.4em;
+    margin: 0;
+    overflow: auto;
+    color: #dce9ff;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 0.7rem;
+    line-height: 1.65;
+    white-space: pre;
+}
+
+.robotics-lab__readout-value--accent {
+    color: var(--robotics-cyan);
+}
+
+.robotics-lab__readout-note {
+    margin: 14px 0 0;
+    color: var(--robotics-faint);
+    font-size: 0.68rem;
+    line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+    .robotics-lab__content {
+        grid-template-columns: 1fr;
+    }
+
+    .robotics-lab__readout,
+    .robotics-lab__viewport {
+        min-height: 0;
+    }
+
+    .robotics-lab__canvas {
+        height: min(72vw, 580px);
+        min-height: 390px;
+    }
+
+    .robotics-lab__fallback {
+        min-height: 390px;
+    }
+}
+
+@media (max-width: 580px) {
+    .robotics-lab {
+        border-radius: 16px;
+    }
+
+    .robotics-lab__header {
+        display: block;
+        padding: 24px 18px 18px;
+    }
+
+    .robotics-lab__status {
+        margin-top: 18px;
+    }
+
+    .robotics-lab__toolbar {
+        flex-wrap: wrap;
+        padding: 0 18px 18px;
+    }
+
+    .robotics-lab__hint {
+        flex-basis: 100%;
+        margin: 2px 0 0;
+    }
+
+    .robotics-lab__canvas {
+        height: 104vw;
+        min-height: 340px;
+    }
+
+    .robotics-lab__readout {
+        padding: 18px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .robotics-lab__button {
+        transition: none;
+    }
+}

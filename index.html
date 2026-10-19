@@ -1,289 +1,107 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="referrer" content="no-referrer">
-    <title>⚡ MangaReader - Read Unlimited Manga & Webtoons Free</title>
-    <!-- Preconnect for Instant CDN & API Performance -->
-    <link rel="preconnect" href="https://api.mangadex.org" crossorigin>
-    <link rel="preconnect" href="https://uploads.mangadex.org" crossorigin>
-    <!-- Site Favicon -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    <!-- Custom CSS (v36.0 Cache-Busted) -->
-    <link rel="stylesheet" href="static/app.css?v=36.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#070a12">
+    <meta name="description" content="Akshat Porwal — AI, robotics, computer vision, and systems portfolio.">
+    <title>Akshat Porwal — AI · Robotics · Systems</title>
 </head>
 <body>
-
-    <!-- Reading Progress Bar -->
-    <div class="progress-bar-reader" id="reader-progress-bar" style="width: 0%;"></div>
-
-    <!-- Toast Notifications Container -->
-    <div class="toast-container-custom" id="toast-container"></div>
-
-    <!-- Top Glassmorphism Navigation Bar -->
-    <nav class="navbar navbar-expand-lg sticky-top">
-        <div class="container-fluid px-3 px-lg-5">
-            <a class="navbar-brand d-flex align-items-center" href="#" id="nav-brand">
-                <i class="fa-solid fa-bolt-lightning text-danger me-2"></i> MangaReader
-            </a>
-            
-            <!-- Search Form with Autocomplete Popup -->
-            <form class="search-container mx-auto my-2 my-lg-0" id="search-form">
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input class="form-control search-input" type="search" placeholder="Search title (e.g. Dragon Ball, One Piece)..." id="search-input" autocomplete="off">
-                <i class="fa-solid fa-circle-xmark search-clear" id="search-clear"></i>
-                <div class="search-results-popup" id="search-results-popup"></div>
-            </form>
-
-            <div class="d-flex align-items-center gap-3">
-                <a href="#" class="nav-link text-light font-weight-semibold" id="nav-home">
-                    <i class="fa-solid fa-compass me-1 text-danger"></i> Explore
-                </a>
-                <a href="#" class="nav-link text-light font-weight-semibold" id="nav-history">
-                    <i class="fa-solid fa-bookmark me-1 text-warning"></i> History
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="container-fluid px-3 px-lg-5 py-4">
-        
-        <!-- 1. HOME VIEW -->
-        <section id="home-view">
-            
-            <!-- Hero Banner Spotlight -->
-            <div class="hero-banner" id="hero-banner">
-                <div class="hero-overlay">
-                    <span class="badge bg-danger mb-2 text-uppercase letter-spacing-1" id="hero-badge">⚡ MANGA SPOTLIGHT OF THE DAY</span>
-                    <h1 class="hero-title" id="hero-title">Unleash Your Imagination</h1>
-                    <p class="hero-description" id="hero-description">Explore thousands of trending manga series, epic webtoons, and action-packed releases in high definition.</p>
-                    <button class="btn btn-danger btn-lg rounded-pill px-4" id="hero-start-btn">
-                        <i class="fa-solid fa-fire me-2"></i> Explore Featured Series
-                    </button>
-                </div>
-            </div>
-
-            <!-- Genre & Franchise Pills -->
-            <div class="mb-4">
-                <div class="genre-pills" id="genre-pills"></div>
-            </div>
-
-            <!-- Search Results Section -->
-            <div id="search-section" style="display: none;" class="mb-5">
-                <h4 class="fw-bold mb-4" id="search-title">Search Results</h4>
-                <div class="manga-grid" id="search-results-grid"></div>
-            </div>
-
-            <!-- Latest Releases Section -->
-            <div class="mb-5" id="latest-section">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0"><i class="fa-solid fa-clock-rotate-left text-danger me-2"></i> Latest Releases</h4>
-                </div>
-                <div class="manga-grid" id="latest-grid"></div>
-            </div>
-
-            <!-- Trending / Popular Section -->
-            <div class="mb-5" id="trending-section">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0"><i class="fa-solid fa-bolt text-warning me-2"></i> Trending Catalog</h4>
-                </div>
-                <div class="manga-grid" id="trending-grid"></div>
-            </div>
-
-            <!-- Action Category Section -->
-            <div class="mb-5" id="action-section">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0"><i class="fa-solid fa-shield-halved text-danger me-2"></i> Action Series</h4>
-                </div>
-                <div class="manga-grid" id="action-grid"></div>
-            </div>
-
-            <!-- Adventure Category Section -->
-            <div class="mb-5" id="adventure-section">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0"><i class="fa-solid fa-map-location-dot text-info me-2"></i> Adventure Series</h4>
-                </div>
-                <div class="manga-grid" id="adventure-grid"></div>
-            </div>
-
-            <!-- Fantasy Category Section -->
-            <div class="mb-5" id="fantasy-section">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0"><i class="fa-solid fa-wand-magic-sparkles text-success me-2"></i> Fantasy Series</h4>
-                </div>
-                <div class="manga-grid" id="fantasy-grid"></div>
-            </div>
-
-            <!-- Romance Category Section -->
-            <div class="mb-5" id="romance-section">
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h4 class="fw-bold m-0"><i class="fa-solid fa-heart text-danger me-2"></i> Romance Series</h4>
-                </div>
-                <div class="manga-grid" id="romance-grid"></div>
-            </div>
-
-        </section>
-
-        <!-- 2. DETAILS VIEW -->
-        <section id="details-view" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <button class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="showView('home')">
-                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Catalog
-                </button>
-                <button class="btn btn-outline-warning btn-sm rounded-pill px-3" onclick="shareMangaLink()">
-                    <i class="fa-solid fa-share-nodes me-1"></i> Share Link
-                </button>
-            </div>
-
-            <div class="manga-detail-header">
-                <div class="row g-4 align-items-center">
-                    <div class="col-md-3 text-center">
-                        <img id="detail-cover" class="detail-cover img-fluid" src="" alt="Manga Cover" referrerpolicy="no-referrer">
-                    </div>
-                    <div class="col-md-9">
-                        <h2 class="fw-bold mb-2" id="detail-title">Loading Title...</h2>
-                        <div class="text-secondary small mb-3" id="detail-status">Status: Loading</div>
-                        <div class="mb-3" id="detail-tags"></div>
-                        <p class="text-light-50" id="detail-description">Loading description...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Related Franchise Series Section -->
-            <div id="related-section" style="display: none;" class="mb-4">
-                <h5 class="fw-bold mb-3"><i class="fa-solid fa-layer-group text-danger me-2"></i> Related Franchise Series</h5>
-                <div class="row g-3" id="related-grid"></div>
-            </div>
-
-            <!-- Chapters Section -->
-            <div class="chapter-list-container">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                    <h5 class="fw-bold m-0"><i class="fa-solid fa-list me-2 text-danger"></i> Chapter Releases</h5>
-                    <div class="d-flex flex-wrap gap-2">
-                        <select class="form-select form-select-sm bg-dark text-light border-secondary" id="chapter-lang-select" style="max-width: 140px;">
-                            <option value="all">All Languages</option>
-                            <option value="EN">English</option>
-                            <option value="JA">Japanese</option>
-                            <option value="ES">Spanish</option>
-                            <option value="IT">Italian</option>
-                            <option value="FR">French</option>
-                        </select>
-                        <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Filter chapter..." id="chapter-search" style="max-width: 180px;">
-                        <button class="btn btn-outline-secondary btn-sm rounded-pill" id="sort-chapters-btn">
-                            <i class="fa-solid fa-arrow-down-1-9 me-1"></i> Ascending
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Prominent Language Selector Box / Tab Bar -->
-                <div class="chapter-range-box mb-3" id="language-box" style="display: none;">
-                    <div class="chapter-range-label mb-2"><i class="fa-solid fa-language me-1 text-danger"></i> Select Translation Language:</div>
-                    <div class="genre-pills" id="language-pills" style="flex-wrap: wrap; gap: 0.5rem;"></div>
-                </div>
-
-                <!-- Prominent Chapter Range Selector Box -->
-                <div class="chapter-range-box" id="chapter-range-box" style="display: none;">
-                    <div class="chapter-range-label d-flex flex-wrap justify-content-between align-items-center mb-2">
-                        <span><i class="fa-solid fa-layer-group me-1 text-danger"></i> Select Chapter Range:</span>
-                        <span class="text-muted small fw-normal" id="chapter-range-info"></span>
-                    </div>
-                    <div class="genre-pills" id="chapter-range-pills" style="flex-wrap: wrap; gap: 0.5rem;"></div>
-                </div>
-
-                <div id="chapter-list"></div>
-            </div>
-        </section>
-
-        <!-- 3. READER VIEW -->
-        <section id="reader-view" style="display: none;">
-            <div class="reader-container reader-theme-dark" id="reader-container">
-                <!-- Sticky Reader Controls -->
-                <div class="reader-controls-sticky">
-                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
-                        <button class="btn btn-outline-light btn-sm rounded-pill" onclick="showView('details')">
-                            <i class="fa-solid fa-arrow-left me-1"></i> Details
-                        </button>
-                        <div class="text-center flex-grow-1">
-                            <div class="fw-bold text-truncate" id="reader-manga-title" style="max-width: 320px; margin: 0 auto;"></div>
-                            <small class="text-muted" id="reader-chapter-title"></small>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <select class="form-select form-select-sm bg-dark text-light border-secondary" id="chapter-select" style="max-width: 150px;"></select>
-
-                            <!-- Zoom Controls -->
-                            <div class="btn-group btn-group-sm">
-                                <button class="btn btn-outline-secondary" onclick="adjustZoom(-10)" title="Zoom Out"><i class="fa-solid fa-minus"></i></button>
-                                <button class="btn btn-outline-secondary" onclick="adjustZoom(10)" title="Zoom In"><i class="fa-solid fa-plus"></i></button>
-                            </div>
-
-                            <!-- Themes Dropdown -->
-                            <div class="dropdown">
-                                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" title="Reader Theme">
-                                    <i class="fa-solid fa-palette"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-dark">
-                                    <li><a class="dropdown-item" href="#" onclick="setReaderTheme('dark')">Dark Obsidian</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="setReaderTheme('black')">OLED Black</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="setReaderTheme('sepia')">Warm Sepia</a></li>
-                                    <li><a class="dropdown-item" href="#" onclick="setReaderTheme('slate')">Slate Steel</a></li>
-                                </ul>
-                            </div>
-
-                            <!-- Fullscreen Button -->
-                            <button class="btn btn-outline-secondary btn-sm" onclick="toggleFullscreen()" title="Toggle Fullscreen">
-                                <i class="fa-solid fa-expand"></i>
-                            </button>
-
-                            <!-- Data Saver Switch -->
-                            <div class="form-check form-switch small ms-1">
-                                <input class="form-check-input" type="checkbox" id="quality-toggle">
-                                <label class="form-check-label text-muted" for="quality-toggle">Data Saver</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="text-center mb-3">
-                    <span class="badge bg-secondary" id="page-counter">Page Counter</span>
-                </div>
-
-                <!-- Pages Container -->
-                <div id="reader-pages-container"></div>
-            </div>
-        </section>
-
-        <!-- 4. HISTORY VIEW -->
-        <section id="history-view" style="display: none;">
-            <h4 class="fw-bold mb-4"><i class="fa-solid fa-bookmark text-warning me-2"></i> Reading History</h4>
-            <div class="row" id="history-grid"></div>
-        </section>
-
-    </main>
-
-    <!-- Floating Navigation Bar for Reader (Single Clean Prev / Next Control) -->
-    <div class="floating-nav d-flex align-items-center gap-3" id="reader-floating-nav" style="display: none !important;">
-        <button class="btn btn-danger btn-sm rounded-circle shadow" id="prev-chap-btn" title="Previous Chapter">
-            <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <span class="small fw-bold text-light">Navigation</span>
-        <button class="btn btn-danger btn-sm rounded-circle shadow" id="next-chap-btn" title="Next Chapter">
-            <i class="fa-solid fa-chevron-right"></i>
-        </button>
+    <div class="noise" aria-hidden="true"></div>
+    <div class="scroll-progress" data-scroll-progress></div>
+    <header class="site-header" data-header>
+        <a class="brand" href="#top" aria-label="Akshat Porwal home">
+            <span class="brand-mark">AP<span class="brand-dot">.</span></span>
+            <span class="brand-copy">AKSHAT PORWAL<small>ENGINEERING PORTFOLIO</small></span>
+        </a>
+        <nav class="desktop-nav" aria-label="Primary navigation">
+            <a href="#about">01 / About</a>
+            <a href="#experience">02 / Experience</a>
+            <a href="#work">03 / Work</a>
+            <a href="#leadership">04 / Leadership</a>
+            <a href="#skills">05 / Skills</a>
+        </nav>
+        <a class="header-resume" href="./Akshat_Porwal_Resume.pdf" download>Resume <span>↗</span></a>
+        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" data-menu-toggle><span></span><span></span></button>
+    </header>
+    <div class="mobile-menu" id="mobile-menu" data-mobile-menu>
+        <a href="#about">01 / About</a><a href="#experience">02 / Experience</a><a href="#work">03 / Work</a><a href="#leadership">04 / Leadership</a><a href="#skills">05 / Skills</a><a href="#contact">06 / Contact</a>
     </div>
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
-    <!-- Application JS (v36.0 Cache-Busted) -->
-    <script src="static/app.js?v=36.0"></script>
+    <main id="top">
+        <section class="hero section-pad" id="about">
+            <div class="hero-copy reveal">
+                <p class="eyebrow"><span class="eyebrow-line"></span> NA22B025 · IIT MADRAS · 2027</p>
+                <h1>Building systems<br>that <em>move.</em></h1>
+                <p class="hero-role">AI · ROBOTICS · COMPUTER VISION · SYSTEMS</p>
+                <p class="hero-intro">I am Akshat Porwal, an Ocean Engineering and IDDD Robotics student exploring the space where intelligent software meets the physical world.</p>
+                <div class="hero-actions"><a class="button button-primary" href="#work">Explore the work <span>↓</span></a><a class="text-link" href="mailto:mpakshat@gmail.com">Let’s connect <span>↗</span></a></div>
+                <div class="hero-meta"><span>Currently at <strong>IIT Madras</strong></span><span class="meta-separator"></span><span>Open to meaningful problems</span></div>
+            </div>
+            <div class="hero-visual scene-shell reveal reveal-delay-1" data-ambient-scene="hero" aria-label="Interactive orbiting AI and robotics visualization">
+                <div class="hero-profile-card">
+                    <img src="./assets/profile-placeholder.svg" alt="Abstract placeholder portrait for Akshat Porwal">
+                    <div><span>PROFILE NODE / 00</span><strong>Akshat Porwal</strong><small>IIT Madras · Ocean Engineering &amp; IDDD Robotics</small><a href="mailto:mpakshat@gmail.com">mpakshat@gmail.com ↗</a></div>
+                </div>
+            </div>
+            <div class="hero-bottomline"><span>SCROLL TO EXPLORE</span><span class="scroll-arrow">↓</span><span class="hero-index">00 / 09</span></div>
+        </section>
+
+        <section class="metrics-strip section-pad section-pad-compact" aria-label="Selected metrics">
+            <div class="metrics-grid" data-metrics></div>
+        </section>
+
+        <section class="content-section section-pad" id="education">
+            <div class="section-heading reveal"><p class="eyebrow">01 / foundation</p><h2>A curious mind,<br><em>rigorous roots.</em></h2><p class="section-lede">An engineering education grounded in robotics, artificial intelligence, probability, and control — with a bias toward building.</p></div>
+            <div class="education-layout"><div class="education-list" data-education></div><div class="education-achievements reveal reveal-delay-1"><p class="micro-label">SCHOLASTIC SIGNALS</p><div data-achievements></div></div></div>
+            <div class="section-visual scene-shell scene-shell-short" data-ambient-scene="education" aria-label="Interactive academic timeline visualization"></div>
+        </section>
+
+        <section class="content-section section-pad section-dark" id="experience">
+            <div class="section-heading split-heading reveal"><div><p class="eyebrow">02 / professional experience</p><h2>From signal<br>to <em>system.</em></h2></div><p class="section-lede">Designing automation that makes security work more reliable, more observable, and less manual.</p></div>
+            <div class="experience-list" data-experience></div>
+            <div class="section-visual scene-shell scene-shell-short" data-ambient-scene="experience" aria-label="Interactive dependency automation network visualization"></div>
+        </section>
+
+        <section class="content-section section-pad" id="current">
+            <div class="section-heading split-heading reveal"><div><p class="eyebrow">03 / current work</p><h2>Making intelligent<br>systems <em>tangible.</em></h2></div><p class="section-lede">A working map of the questions I keep returning to: how can machines perceive, reason, and act with grace?</p></div>
+            <div class="current-grid"><div class="current-copy reveal" data-current-copy></div><div class="focus-stack reveal reveal-delay-1" data-current-focus></div></div>
+            <div class="lab-space" id="robotics-root"></div>
+        </section>
+
+        <section class="content-section section-pad section-dark" id="work">
+            <div class="section-heading split-heading reveal"><div><p class="eyebrow">04 / selected work</p><h2>Experiments with<br><em>consequence.</em></h2></div><p class="section-lede">Projects across generative AI, vision, marine robotics, and manipulation — each one a different way to make an idea move.</p></div>
+            <div class="projects-grid" data-projects></div>
+            <div class="section-visual scene-shell scene-shell-short" data-ambient-scene="projects" aria-label="Interactive project systems visualization"></div>
+            <div class="lab-space lab-space-neural" id="neural-root"></div>
+        </section>
+
+        <section class="content-section section-pad" id="leadership">
+            <div class="section-heading split-heading reveal"><div><p class="eyebrow">05 / positions of responsibility</p><h2>Lead by<br><em>making room.</em></h2></div><p class="section-lede">The best technical work is rarely solitary. I have learned to build teams where different kinds of curiosity can compound.</p></div>
+            <div class="leadership-layout"><div class="leadership-list" data-leadership></div><div class="leadership-note reveal reveal-delay-1"><span class="big-quote">“</span><p>Representing a team means making the path clearer for everyone who walks it with you.</p><span class="quote-line"></span><span class="micro-label">ENVISAGE · CFI</span></div></div>
+            <div class="section-visual scene-shell scene-shell-short" data-ambient-scene="leadership" aria-label="Interactive leadership network visualization"></div>
+        </section>
+
+        <section class="content-section section-pad section-dark" id="skills">
+            <div class="section-heading split-heading reveal"><div><p class="eyebrow">06 / toolkit</p><h2>Many tools.<br><em>One intent.</em></h2></div><p class="section-lede">A practical toolkit that spans models, motors, infrastructure, and the glue that makes them work together.</p></div>
+            <div class="skills-layout"><div class="skills-cloud" data-skills></div><div class="coursework-card reveal reveal-delay-1"><p class="micro-label">COURSEWORK</p><div class="coursework-list" data-coursework></div></div></div>
+            <div class="section-visual scene-shell scene-shell-short" data-ambient-scene="skills" aria-label="Interactive 3D skills constellation"></div>
+        </section>
+
+        <section class="content-section section-pad awards-section" id="awards">
+            <div class="awards-layout"><div class="section-heading reveal"><p class="eyebrow">07 / recognition</p><h2>Signals that<br><em>stayed with me.</em></h2></div><div class="awards-list reveal reveal-delay-1" data-awards></div></div>
+            <div class="section-visual scene-shell scene-shell-short" data-ambient-scene="awards" aria-label="Interactive awards visualization"></div>
+        </section>
+
+        <section class="contact-section section-pad" id="contact">
+            <div class="contact-visual scene-shell" data-ambient-scene="contact" aria-hidden="true"></div>
+            <div class="contact-copy reveal"><p class="eyebrow">08 / contact</p><h2>Have a hard problem?<br><em>Let’s make it move.</em></h2><p>For conversations around AI, robotics, security automation, or systems that need to work in the real world.</p><div class="contact-actions"><a class="button button-primary" href="mailto:mpakshat@gmail.com">Email me <span>↗</span></a><a class="button button-ghost" href="./Akshat_Porwal_Resume.pdf" download>Download resume <span>↓</span></a></div><div class="social-links"><a href="https://github.com/akshat-1" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://www.linkedin.com/in/akshat-porwal/" target="_blank" rel="noreferrer">LinkedIn ↗</a><button type="button" data-copy-email>Copy email</button></div></div>
+        </section>
+    </main>
+
+    <footer class="site-footer"><span>© 2026 AKSHAT PORWAL</span><span>BUILT WITH CURIOSITY <i>✦</i></span><a href="#top">BACK TO TOP ↑</a></footer>
+    <div class="toast" data-toast role="status" aria-live="polite"></div>
+    <script type="module" src="./src/main.js"></script>
 </body>
 </html>

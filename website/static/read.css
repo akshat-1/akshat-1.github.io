@@ -1,6 +1,0 @@
-.images {
-    width: 75vw; /* 3/4 of the page width */
-    height: auto; /* maintain aspect ratio */
-    margin: 0 auto; /* center align horizontally */
-    display: block; /* make it a block element to center align */
-  }

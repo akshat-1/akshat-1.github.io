@@ -1,6 +1,9 @@
+node_modules/
+dist/
 __pycache__/
 *.pyc
-tempCodeRunnerFile.py
-.venv/
-env/
+*.log
 .DS_Store
+.env
+.env.*
+!.env.example
