@@ -153,101 +153,14 @@ function backwardPass(parameters, forward) {
 function createMarkup(documentRef) {
     const wrapper = documentRef.createElement('section');
     wrapper.className = 'neural-lab';
-    wrapper.setAttribute('aria-label', 'Interactive deep-learning visualization');
+    wrapper.setAttribute('aria-label', 'Neural Lab interactive visualization');
     wrapper.innerHTML = `
-        <header class="neural-lab__header">
-            <div>
-                <p class="neural-lab__eyebrow">Interactive deep-learning study</p>
-                <h2 class="neural-lab__title">Neural Lab <span>01</span></h2>
-                <p class="neural-lab__intro">
-                    Trace one sample through a multilayer perceptron, inspect every perceptron calculation, and watch gradients travel back to the weights.
-                </p>
+        <div class="neural-lab__viewport">
+            <canvas class="neural-lab__canvas" tabindex="0" data-role="canvas" aria-label="Three-dimensional multilayer perceptron. Click a neuron to inspect it."></canvas>
+            <div class="neural-lab__fallback" data-role="fallback" hidden>
+                <span class="neural-lab__fallback-copy" data-role="fallback-copy">WebGL unavailable.</span>
             </div>
-            <div class="neural-lab__status" data-role="status" data-state="ready">READY</div>
-        </header>
-        <div class="neural-lab__toolbar" role="toolbar" aria-label="Neural network playback controls">
-            <div class="neural-lab__toolbar-group">
-                <button class="neural-lab__button neural-lab__button--forward" type="button" data-action="forward-play" aria-pressed="false">▶ Forward play</button>
-                <button class="neural-lab__button neural-lab__button--backward" type="button" data-action="backward-play" aria-pressed="false">◀ Backward play</button>
-            </div>
-            <div class="neural-lab__toolbar-group">
-                <button class="neural-lab__button" type="button" data-action="forward-step">Step →</button>
-                <button class="neural-lab__button" type="button" data-action="backward-step">← Step</button>
-                <button class="neural-lab__button neural-lab__button--quiet" type="button" data-action="pause">Pause</button>
-                <button class="neural-lab__button neural-lab__button--quiet" type="button" data-action="reset">Reset</button>
-            </div>
-            <span class="neural-lab__toolbar-hint">Click a neuron to inspect its computation · Space pauses</span>
-        </div>
-        <div class="neural-lab__content">
-            <div class="neural-lab__viewport">
-                <canvas class="neural-lab__canvas" tabindex="0" data-role="canvas" aria-label="Three-dimensional multilayer perceptron. Click a neuron to inspect it."></canvas>
-                <div class="neural-lab__layer-labels" aria-hidden="true">
-                    <span>INPUT <small>3 features</small></span>
-                    <span>HIDDEN <small>ReLU × 4</small></span>
-                    <span>OUTPUT <small>sigmoid</small></span>
-                    <span>LOSS <small>MSE</small></span>
-                </div>
-                <div class="neural-lab__fallback" data-role="fallback" hidden>
-                    <div class="neural-lab__fallback-card">
-                        <h3 class="neural-lab__fallback-title">3D preview unavailable</h3>
-                        <p class="neural-lab__fallback-copy" data-role="fallback-copy">WebGL could not be initialized in this browser or device. The live forward and backward calculation panel is still available.</p>
-                    </div>
-                </div>
-                <div class="neural-lab__legend" aria-hidden="true">
-                    <span><i class="neural-lab__legend-dot neural-lab__legend-dot--positive"></i> positive weight</span>
-                    <span><i class="neural-lab__legend-dot neural-lab__legend-dot--negative"></i> negative weight</span>
-                    <span><i class="neural-lab__legend-dot neural-lab__legend-dot--selected"></i> selected path</span>
-                </div>
-            </div>
-            <aside class="neural-lab__panel" aria-label="Selected perceptron calculations">
-                <div class="neural-lab__panel-header">
-                    <div>
-                        <p class="neural-lab__panel-kicker">Read-only trace</p>
-                        <h3 class="neural-lab__panel-title">Perceptron inspector</h3>
-                    </div>
-                    <span class="neural-lab__selected" data-role="selected">h₂ · hidden</span>
-                </div>
-                <div class="neural-lab__selector" role="group" aria-label="Select a perceptron">
-                    <button type="button" data-neuron="input-0">x₁</button>
-                    <button type="button" data-neuron="input-1">x₂</button>
-                    <button type="button" data-neuron="input-2">x₃</button>
-                    <button type="button" data-neuron="hidden-0">h₁</button>
-                    <button type="button" data-neuron="hidden-1" aria-pressed="true">h₂</button>
-                    <button type="button" data-neuron="hidden-2">h₃</button>
-                    <button type="button" data-neuron="hidden-3">h₄</button>
-                    <button type="button" data-neuron="output-0">ŷ</button>
-                    <button type="button" data-neuron="loss-0">L</button>
-                </div>
-                <div class="neural-lab__phase" data-role="phase" aria-live="polite">Step 1 / 8 · Forward · inputs</div>
-                <div class="neural-lab__readout-scroll">
-                    <section class="neural-lab__readout-card neural-lab__readout-card--forward">
-                        <div class="neural-lab__readout-card-header"><h4>Forward computation</h4><span>f(x)</span></div>
-                        <dl class="neural-lab__readout-list">
-                            <div><dt>inputs x</dt><dd data-readout="inputs"></dd></div>
-                            <div><dt>weights w</dt><dd data-readout="weights"></dd></div>
-                            <div><dt>products x · w</dt><dd data-readout="products"></dd></div>
-                            <div><dt>bias b</dt><dd data-readout="bias"></dd></div>
-                            <div><dt>z = Σ(x · w) + b</dt><dd data-readout="z"></dd></div>
-                            <div><dt>activation a</dt><dd class="neural-lab__value--accent" data-readout="activation"></dd></div>
-                        </dl>
-                    </section>
-                    <section class="neural-lab__readout-card neural-lab__readout-card--backward">
-                        <div class="neural-lab__readout-card-header"><h4>Backward computation</h4><span>∂L</span></div>
-                        <dl class="neural-lab__readout-list">
-                            <div><dt>gradient ∂L / ∂a</dt><dd data-readout="gradient"></dd></div>
-                            <div><dt>local gradient δ</dt><dd data-readout="delta"></dd></div>
-                            <div><dt>weight gradients ∂L / ∂w</dt><dd data-readout="weight-gradients"></dd></div>
-                            <div><dt>bias gradient ∂L / ∂b</dt><dd data-readout="bias-gradient"></dd></div>
-                            <div><dt>updates −η · gradient</dt><dd class="neural-lab__value--accent" data-readout="updates"></dd></div>
-                        </dl>
-                    </section>
-                    <section class="neural-lab__readout-card neural-lab__readout-card--wide">
-                        <div class="neural-lab__readout-card-header"><h4>Network snapshot</h4><span>η = ${formatNumber(LEARNING_RATE, 2)}</span></div>
-                        <pre class="neural-lab__network-summary" data-role="network-summary"></pre>
-                    </section>
-                </div>
-                <p class="neural-lab__panel-note" data-role="motion-note">Pulses are live · click nodes or use the selector above</p>
-            </aside>
+            <div class="neural-lab__calculation" data-role="calculation" aria-live="polite" aria-atomic="true"></div>
         </div>
     `;
     return wrapper;
@@ -315,26 +228,7 @@ export function createNeuralLab(root) {
     const canvas = wrapper.querySelector('[data-role="canvas"]');
     const fallback = wrapper.querySelector('[data-role="fallback"]');
     const fallbackCopy = wrapper.querySelector('[data-role="fallback-copy"]');
-    const status = wrapper.querySelector('[data-role="status"]');
-    const pauseButton = wrapper.querySelector('[data-action="pause"]');
-    const motionNote = wrapper.querySelector('[data-role="motion-note"]');
-    const selectedOutput = wrapper.querySelector('[data-role="selected"]');
-    const phaseOutput = wrapper.querySelector('[data-role="phase"]');
-    const networkSummary = wrapper.querySelector('[data-role="network-summary"]');
-    const outputs = {
-        inputs: wrapper.querySelector('[data-readout="inputs"]'),
-        weights: wrapper.querySelector('[data-readout="weights"]'),
-        products: wrapper.querySelector('[data-readout="products"]'),
-        bias: wrapper.querySelector('[data-readout="bias"]'),
-        z: wrapper.querySelector('[data-readout="z"]'),
-        activation: wrapper.querySelector('[data-readout="activation"]'),
-        gradient: wrapper.querySelector('[data-readout="gradient"]'),
-        delta: wrapper.querySelector('[data-readout="delta"]'),
-        weightGradients: wrapper.querySelector('[data-readout="weight-gradients"]'),
-        biasGradient: wrapper.querySelector('[data-readout="bias-gradient"]'),
-        updates: wrapper.querySelector('[data-readout="updates"]')
-    };
-    const selectorButtons = Array.from(wrapper.querySelectorAll('[data-neuron]'));
+    const calculationOverlay = wrapper.querySelector('[data-role="calculation"]');
     const cleanupTasks = [];
     const state = {
         parameters: cloneParameters(),
@@ -363,6 +257,7 @@ export function createNeuralLab(root) {
     let raycaster = null;
     let pointer = null;
     let pointerDown = null;
+    let calculationTimer = 0;
     const nodeVisuals = new Map();
     const hitAreas = [];
     const edgeVisuals = [];
@@ -370,31 +265,26 @@ export function createNeuralLab(root) {
     const getForward = () => forwardPass(state.parameters);
     const getBackward = (forward = getForward()) => backwardPass(state.parameters, forward);
 
-    const setStatus = (label, stateName) => {
-        status.textContent = label;
-        status.dataset.state = stateName;
-        pauseButton.textContent = state.playing ? 'Pause' : (state.hasStarted ? 'Resume' : 'Pause');
-        pauseButton.setAttribute('aria-pressed', String(state.playing));
-        wrapper.querySelector('[data-action="forward-play"]').setAttribute(
-            'aria-pressed',
-            String(state.playing && state.playDirection === 'forward')
-        );
-        wrapper.querySelector('[data-action="backward-play"]').setAttribute(
-            'aria-pressed',
-            String(state.playing && state.playDirection === 'backward')
-        );
-    };
+    const setTimer = windowRef && windowRef.setTimeout
+        ? windowRef.setTimeout.bind(windowRef)
+        : setTimeout;
+    const clearTimer = windowRef && windowRef.clearTimeout
+        ? windowRef.clearTimeout.bind(windowRef)
+        : clearTimeout;
 
-    const setReadyStatus = () => {
-        setStatus(renderer ? 'READY' : 'WEBGL UNAVAILABLE', renderer ? 'ready' : 'fallback');
-    };
-
-    const updateSelector = () => {
-        selectorButtons.forEach((button) => {
-            const selected = button.dataset.neuron === state.selectedId;
-            button.setAttribute('aria-pressed', String(selected));
-            button.dataset.selected = String(selected);
-        });
+    const showCalculation = (lines) => {
+        if (!calculationOverlay) {
+            return;
+        }
+        calculationOverlay.textContent = lines.filter(Boolean).join('\n');
+        calculationOverlay.classList.add('is-visible');
+        if (calculationTimer) {
+            clearTimer(calculationTimer);
+        }
+        calculationTimer = setTimer(() => {
+            calculationOverlay.classList.remove('is-visible');
+            calculationTimer = 0;
+        }, state.reducedMotion ? 1200 : 2400);
     };
 
     const selectedParts = () => {
@@ -496,39 +386,81 @@ export function createNeuralLab(root) {
         };
     };
 
-    const updateReadouts = () => {
-        const forward = getForward();
-        const selected = selectedForwardAndBackward();
+    const selectionCalculation = (selected) => {
+        const { layer, index } = selectedParts();
+        const label = NODE_LABELS[state.selectedId];
+        if (layer === 'input') {
+            return [
+                `${label} = ${formatNumber(INPUT_VALUES[index])} · ∂L/∂${label} = ${selected.gradient}`
+            ];
+        }
+        if (layer === 'hidden') {
+            return [
+                `${label} · z = ${selected.z} · a = ${selected.activation}`,
+                `δ = ${selected.delta} · ∂L/∂w = ${selected.weightGradients}`
+            ];
+        }
+        if (layer === 'output') {
+            return [
+                `${label} · z = ${selected.z} · a = ${selected.activation}`,
+                `∂L/∂ŷ = ${selected.gradient} · δ = ${selected.delta}`
+            ];
+        }
+        return [
+            `L = ${selected.activation} · target = ${formatNumber(TARGET_VALUE)}`,
+            `∂L/∂ŷ = ${selected.gradient}`
+        ];
+    };
+
+    const phaseCalculation = (forward, backward) => {
         const phase = PHASES[state.phaseIndex];
-        selectedOutput.textContent = selectedName();
-        phaseOutput.textContent = `Step ${state.phaseIndex + 1} / ${PHASES.length} · ${phase.label}`;
-        outputs.inputs.textContent = selected.inputs;
-        outputs.weights.textContent = selected.weights;
-        outputs.products.textContent = selected.products;
-        outputs.bias.textContent = selected.bias;
-        outputs.z.textContent = selected.z;
-        outputs.activation.textContent = selected.activation;
-        outputs.gradient.textContent = selected.gradient;
-        outputs.delta.textContent = selected.delta;
-        outputs.weightGradients.textContent = selected.weightGradients;
-        outputs.biasGradient.textContent = selected.biasGradient;
-        outputs.updates.textContent = selected.updates;
-        networkSummary.textContent = [
-            `ŷ  ${formatNumber(forward.outputA)}       target  ${formatNumber(TARGET_VALUE)}`,
-            `L  ${formatNumber(forward.loss)}       ||∇x||  ${formatNumber(Math.hypot(...getBackward(forward).inputGradients))}`,
-            `h  ${formatVector(forward.hiddenA)}`,
-            `phase  ${phase.direction.toUpperCase()} / ${state.playing ? 'PLAYING' : 'READY'}`
-        ].join('\n');
+        const prefix = `Step ${state.phaseIndex + 1} / ${PHASES.length} · ${phase.label}`;
+        if (state.phaseIndex === 0) {
+            return [prefix, `x = ${formatVector(INPUT_VALUES)}`];
+        }
+        if (state.phaseIndex === 1) {
+            return [prefix, `h = ReLU(Wx + b) = ${formatVector(forward.hiddenA)}`];
+        }
+        if (state.phaseIndex === 2) {
+            return [prefix, `ŷ = σ(${formatNumber(forward.outputZ)}) = ${formatNumber(forward.outputA)}`];
+        }
+        if (state.phaseIndex === 3) {
+            return [prefix, `L = ½(ŷ − y)² = ${formatNumber(forward.loss)}`];
+        }
+        if (state.phaseIndex === 4) {
+            return [prefix, `∂L/∂ŷ = ${formatNumber(backward.outputActivationGradient)}`];
+        }
+        if (state.phaseIndex === 5) {
+            return [prefix, `δŷ = ${formatNumber(backward.outputDelta)} · ∂L/∂w = ${formatSignedVector(backward.outputWeightGradients)}`];
+        }
+        if (state.phaseIndex === 6) {
+            return [prefix, `δh = ${formatSignedVector(backward.hiddenDeltas)}`];
+        }
+        const update = state.lastUpdate && state.lastUpdate.hiddenWeights[0]
+            ? state.lastUpdate.hiddenWeights[0][0]
+            : -LEARNING_RATE * backward.hiddenWeightGradients[0][0];
+        return [prefix, `η = ${formatNumber(LEARNING_RATE, 2)} · Δw₁₁ = ${formatSigned(update)}`];
+    };
+
+    const updateReadouts = ({ notify = false, reason = 'phase' } = {}) => {
+        const forward = getForward();
+        const backward = getBackward(forward);
+        const selected = selectedForwardAndBackward();
+        state.lastCalculation = { forward, backward, selected };
+        if (notify) {
+            showCalculation(reason === 'selection'
+                ? selectionCalculation(selected)
+                : phaseCalculation(forward, backward));
+        }
     };
 
     const showFallback = (reason) => {
         canvas.dataset.fallback = 'true';
         canvas.setAttribute('aria-hidden', 'true');
         fallback.hidden = false;
-        if (reason && fallbackCopy) {
-            fallbackCopy.textContent = `WebGL could not be initialized (${reason}). The live forward and backward calculation panel is still available.`;
+        if (fallbackCopy) {
+            fallbackCopy.textContent = 'WebGL unavailable.';
         }
-        setStatus('WEBGL UNAVAILABLE', 'fallback');
     };
 
     try {
@@ -538,6 +470,7 @@ export function createNeuralLab(root) {
             canvas,
             powerPreference: 'high-performance'
         });
+        renderer.setClearColor(0x000000, 0);
         renderer.setPixelRatio(Math.min(windowRef && windowRef.devicePixelRatio ? windowRef.devicePixelRatio : 1, 2));
         if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) {
             renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -628,8 +561,8 @@ export function createNeuralLab(root) {
 
     if (renderer) {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x091222);
-        scene.fog = new THREE.Fog(0x091222, 7, 14);
+        scene.background = null;
+        scene.fog = null;
         camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
         camera.position.set(0.2, 0.35, 8.5);
         camera.lookAt(0, 0, 0);
@@ -648,35 +581,8 @@ export function createNeuralLab(root) {
         stage.rotation.y = -0.08;
         scene.add(stage);
 
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(8.6, 5.2),
-            new THREE.MeshStandardMaterial({ color: 0x0d1a31, metalness: 0.12, roughness: 0.82 })
-        );
-        floor.rotation.x = -Math.PI / 2;
-        floor.position.y = -2.08;
-        floor.position.z = -0.32;
-        floor.receiveShadow = true;
-        stage.add(floor);
-        const grid = new THREE.GridHelper(8.4, 24, 0x2a4d70, 0x172d4a);
-        grid.position.y = -2.06;
-        grid.position.z = -0.3;
-        grid.material.transparent = true;
-        grid.material.opacity = 0.32;
-        stage.add(grid);
-
         const layerPositions = { input: -3.05, hidden: -0.95, output: 1.15, loss: 3.05 };
         const layerColors = { input: 0x6fa8ff, hidden: 0x55dbc5, output: 0xffbd68, loss: 0xff809c };
-        Object.entries(layerPositions).forEach(([layer, x]) => {
-            const layerMaterial = new THREE.MeshBasicMaterial({
-                color: layerColors[layer],
-                transparent: true,
-                opacity: 0.035,
-                depthWrite: false
-            });
-            const layerPanel = new THREE.Mesh(new THREE.BoxGeometry(0.09, 4.05, 0.7), layerMaterial);
-            layerPanel.position.set(x, 0, -0.24);
-            stage.add(layerPanel);
-        });
 
         [-1.02, 0, 1.02].forEach((y, index) => {
             createNode(`input-${index}`, new THREE.Vector3(layerPositions.input, y, 0), layerColors.input);
@@ -801,8 +707,7 @@ export function createNeuralLab(root) {
             return;
         }
         state.selectedId = id;
-        updateSelector();
-        updateReadouts();
+        updateReadouts({ notify: true, reason: 'selection' });
         canvas.setAttribute('aria-label', `Three-dimensional multilayer perceptron. Selected ${selectedName()}. Click a neuron to inspect it.`);
         renderScene(lastFrameTime);
     };
@@ -857,7 +762,7 @@ export function createNeuralLab(root) {
 
     const setPhase = (phaseIndex) => {
         state.phaseIndex = clamp(phaseIndex, 0, PHASES.length - 1);
-        updateReadouts();
+        updateReadouts({ notify: true, reason: 'phase' });
         renderScene(lastFrameTime);
     };
 
@@ -866,7 +771,6 @@ export function createNeuralLab(root) {
         state.hasStarted = true;
         state.playing = false;
         setPhase(state.phaseIndex >= 3 ? 0 : state.phaseIndex + 1);
-        setReadyStatus();
     };
 
     const backwardStep = () => {
@@ -879,18 +783,16 @@ export function createNeuralLab(root) {
             setPhase(state.phaseIndex + 1);
             if (state.phaseIndex === 7) {
                 applyParameterUpdate();
-                updateReadouts();
+                updateReadouts({ notify: true, reason: 'phase' });
                 renderScene(lastFrameTime);
             }
         }
-        setReadyStatus();
     };
 
     const advancePlayback = () => {
         if (state.playDirection === 'forward') {
             if (state.phaseIndex >= 3) {
                 state.playing = false;
-                setStatus('FORWARD COMPLETE', 'complete');
                 return;
             }
             setPhase(state.phaseIndex + 1);
@@ -899,13 +801,12 @@ export function createNeuralLab(root) {
                 setPhase(4);
             } else if (state.phaseIndex >= 7) {
                 state.playing = false;
-                setStatus('BACKWARD COMPLETE', 'complete');
                 return;
             } else {
                 setPhase(state.phaseIndex + 1);
                 if (state.phaseIndex === 7) {
                     applyParameterUpdate();
-                    updateReadouts();
+                    updateReadouts({ notify: true, reason: 'phase' });
                     renderScene(lastFrameTime);
                 }
             }
@@ -952,14 +853,12 @@ export function createNeuralLab(root) {
         }
         state.playing = true;
         lastStepTime = lastFrameTime;
-        updateReadouts();
-        setStatus(direction === 'forward' ? 'PLAYING FORWARD' : 'PLAYING BACKWARD', 'playing');
+        updateReadouts({ notify: true, reason: 'phase' });
         startLoop();
     };
 
     const pause = () => {
         state.playing = false;
-        setStatus('PAUSED', 'paused');
         renderScene(lastFrameTime);
     };
 
@@ -971,9 +870,7 @@ export function createNeuralLab(root) {
         state.playing = false;
         state.hasStarted = false;
         state.lastUpdate = null;
-        updateSelector();
-        updateReadouts();
-        setReadyStatus();
+        updateReadouts({ notify: true, reason: 'phase' });
         renderScene(lastFrameTime);
     };
 
@@ -995,21 +892,6 @@ export function createNeuralLab(root) {
     addListener(canvas, 'pointerup', onPointerUp, { passive: true }, cleanupTasks);
     addListener(canvas, 'pointercancel', onPointerUp, { passive: true }, cleanupTasks);
     addListener(canvas, 'keydown', onKeyDown, undefined, cleanupTasks);
-    addListener(wrapper.querySelector('[data-action="forward-play"]'), 'click', () => play('forward'), undefined, cleanupTasks);
-    addListener(wrapper.querySelector('[data-action="backward-play"]'), 'click', () => play('backward'), undefined, cleanupTasks);
-    addListener(wrapper.querySelector('[data-action="forward-step"]'), 'click', forwardStep, undefined, cleanupTasks);
-    addListener(wrapper.querySelector('[data-action="backward-step"]'), 'click', backwardStep, undefined, cleanupTasks);
-    addListener(pauseButton, 'click', () => {
-        if (state.playing) {
-            pause();
-        } else {
-            play(state.playDirection);
-        }
-    }, undefined, cleanupTasks);
-    addListener(wrapper.querySelector('[data-action="reset"]'), 'click', reset, undefined, cleanupTasks);
-    selectorButtons.forEach((button) => {
-        addListener(button, 'click', () => selectNeuron(button.dataset.neuron), undefined, cleanupTasks);
-    });
 
     if (renderer) {
         if (windowRef && windowRef.ResizeObserver) {
@@ -1030,9 +912,6 @@ export function createNeuralLab(root) {
         const motionQuery = windowRef.matchMedia('(prefers-reduced-motion: reduce)');
         const onMotionChange = (event) => {
             state.reducedMotion = event.matches;
-            motionNote.textContent = state.reducedMotion
-                ? 'Reduced motion enabled · pulses are paused · click nodes or use the selector above'
-                : 'Pulses are live · click nodes or use the selector above';
             if (state.reducedMotion && animationFrame && !state.playing) {
                 cancelFrame(animationFrame);
                 animationFrame = 0;
@@ -1050,9 +929,7 @@ export function createNeuralLab(root) {
         }
     }
 
-    updateSelector();
-    updateReadouts();
-    setReadyStatus();
+    updateReadouts({ notify: true, reason: 'phase' });
 
     return () => {
         if (state.disposed) {
@@ -1061,6 +938,9 @@ export function createNeuralLab(root) {
         state.disposed = true;
         if (animationFrame) {
             cancelFrame(animationFrame);
+        }
+        if (calculationTimer) {
+            clearTimer(calculationTimer);
         }
         cleanupTasks.forEach((cleanup) => cleanup());
         if (renderer) {

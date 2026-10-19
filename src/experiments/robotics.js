@@ -189,71 +189,12 @@ function createMarkup(documentRef) {
     wrapper.className = 'robotics-lab';
     wrapper.setAttribute('aria-label', 'Interactive 5DOF robotics lab');
     wrapper.innerHTML = `
-        <header class="robotics-lab__header">
-            <div>
-                <p class="robotics-lab__eyebrow">Interactive kinematics study</p>
-                <h2 class="robotics-lab__title">5DOF Robotics Lab</h2>
-                <p class="robotics-lab__intro">
-                    Drag the hollow target and watch a five-joint arm solve its next pose with a damped least-squares Jacobian controller.
-                </p>
+        <div class="robotics-lab__viewport">
+            <canvas class="robotics-lab__canvas" tabindex="0" aria-label="Three-dimensional 5DOF robot arm. Drag the glowing target to move it." data-role="canvas"></canvas>
+            <div class="robotics-lab__fallback" data-role="fallback" hidden>
+                <span class="robotics-lab__fallback-copy" data-role="fallback-copy">WebGL unavailable.</span>
             </div>
-            <span class="robotics-lab__status" data-role="status" data-state="tracking">TRACKING</span>
-        </header>
-        <div class="robotics-lab__toolbar" role="toolbar" aria-label="Robotics controls">
-            <button class="robotics-lab__button" type="button" data-action="pause">Pause</button>
-            <button class="robotics-lab__button" type="button" data-action="reset">Reset pose</button>
-            <span class="robotics-lab__hint">Drag the cyan ring · Arrow keys move it · Space pauses</span>
-        </div>
-        <div class="robotics-lab__content">
-            <div class="robotics-lab__viewport">
-                <canvas class="robotics-lab__canvas" tabindex="0" aria-label="Three-dimensional 5DOF robot arm. Drag the glowing target to move it." data-role="canvas"></canvas>
-                <div class="robotics-lab__fallback" data-role="fallback" hidden>
-                    <div class="robotics-lab__fallback-card">
-                        <h3 class="robotics-lab__fallback-title">3D preview unavailable</h3>
-                        <p class="robotics-lab__fallback-copy" data-role="fallback-copy">WebGL could not be initialized in this browser or device. The live calculation readout is still available below.</p>
-                    </div>
-                </div>
-                <div class="robotics-lab__legend" aria-hidden="true">
-                    <span class="robotics-lab__legend-item"><i class="robotics-lab__legend-dot robotics-lab__legend-dot--target"></i> target</span>
-                    <span class="robotics-lab__legend-item"><i class="robotics-lab__legend-dot robotics-lab__legend-dot--joint"></i> joints</span>
-                    <span class="robotics-lab__legend-item"><i class="robotics-lab__legend-dot"></i> links</span>
-                </div>
-            </div>
-            <aside class="robotics-lab__readout" aria-label="Live robotics calculations">
-                <div class="robotics-lab__readout-header">
-                    <h3 class="robotics-lab__readout-title">Live calculations</h3>
-                    <span class="robotics-lab__read-only">read-only</span>
-                </div>
-                <div class="robotics-lab__readout-scroll">
-                    <div class="robotics-lab__readout-grid">
-                        <section class="robotics-lab__readout-card robotics-lab__readout-card--wide">
-                            <h4 class="robotics-lab__readout-label">Joint vector q</h4>
-                            <pre class="robotics-lab__readout-value robotics-lab__readout-value--accent" data-readout="joints"></pre>
-                        </section>
-                        <section class="robotics-lab__readout-card">
-                            <h4 class="robotics-lab__readout-label">Target position</h4>
-                            <pre class="robotics-lab__readout-value" data-readout="target"></pre>
-                        </section>
-                        <section class="robotics-lab__readout-card">
-                            <h4 class="robotics-lab__readout-label">Current position</h4>
-                            <pre class="robotics-lab__readout-value" data-readout="current"></pre>
-                        </section>
-                        <section class="robotics-lab__readout-card robotics-lab__readout-card--wide">
-                            <h4 class="robotics-lab__readout-label">Position error ‖e‖</h4>
-                            <pre class="robotics-lab__readout-value robotics-lab__readout-value--accent" data-readout="error"></pre>
-                        </section>
-                        <section class="robotics-lab__readout-card robotics-lab__readout-card--wide">
-                            <h4 class="robotics-lab__readout-label">Jacobian J (m / rad)</h4>
-                            <pre class="robotics-lab__readout-value" data-readout="jacobian"></pre>
-                        </section>
-                        <section class="robotics-lab__readout-card robotics-lab__readout-card--wide">
-                            <h4 class="robotics-lab__readout-label">End-effector transform T</h4>
-                            <pre class="robotics-lab__readout-value" data-readout="transform"></pre>
-                        </section>
-                    </div>
-                    <p class="robotics-lab__readout-note" data-role="motion-note">DLS λ = 0.18 · positions are in metres · joint angles are in radians</p>
-                </div>
-            </aside>
+            <div class="robotics-lab__calculation" data-role="calculation" aria-live="polite" aria-atomic="true"></div>
         </div>
     `;
     return wrapper;
@@ -272,18 +213,7 @@ export function createRoboticsLab(root) {
     const canvas = wrapper.querySelector('[data-role="canvas"]');
     const fallback = wrapper.querySelector('[data-role="fallback"]');
     const fallbackCopy = wrapper.querySelector('[data-role="fallback-copy"]');
-    const status = wrapper.querySelector('[data-role="status"]');
-    const pauseButton = wrapper.querySelector('[data-action="pause"]');
-    const resetButton = wrapper.querySelector('[data-action="reset"]');
-    const motionNote = wrapper.querySelector('[data-role="motion-note"]');
-    const outputs = {
-        joints: wrapper.querySelector('[data-readout="joints"]'),
-        target: wrapper.querySelector('[data-readout="target"]'),
-        current: wrapper.querySelector('[data-readout="current"]'),
-        error: wrapper.querySelector('[data-readout="error"]'),
-        jacobian: wrapper.querySelector('[data-readout="jacobian"]'),
-        transform: wrapper.querySelector('[data-readout="transform"]')
-    };
+    const calculationOverlay = wrapper.querySelector('[data-role="calculation"]');
     const cleanupTasks = [];
     const state = {
         joints: INITIAL_JOINTS.slice(),
@@ -293,6 +223,7 @@ export function createRoboticsLab(root) {
         paused: false,
         dragging: false,
         pointerId: null,
+        calculationPending: false,
         reducedMotion: Boolean(windowRef && windowRef.matchMedia && windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches),
         disposed: false
     };
@@ -304,12 +235,28 @@ export function createRoboticsLab(root) {
     let resizeObserver = null;
     let lastTime = 0;
     let lastReadoutTime = -Infinity;
+    let calculationTimer = 0;
 
-    const setStatus = (label, stateName) => {
-        status.textContent = label;
-        status.dataset.state = stateName;
-        pauseButton.disabled = stateName === 'fallback';
-        pauseButton.textContent = state.paused ? 'Resume' : 'Pause';
+    const setTimer = windowRef && windowRef.setTimeout
+        ? windowRef.setTimeout.bind(windowRef)
+        : setTimeout;
+    const clearTimer = windowRef && windowRef.clearTimeout
+        ? windowRef.clearTimeout.bind(windowRef)
+        : clearTimeout;
+
+    const showCalculation = (lines) => {
+        if (!calculationOverlay) {
+            return;
+        }
+        calculationOverlay.textContent = lines.filter(Boolean).join('\n');
+        calculationOverlay.classList.add('is-visible');
+        if (calculationTimer) {
+            clearTimer(calculationTimer);
+        }
+        calculationTimer = setTimer(() => {
+            calculationOverlay.classList.remove('is-visible');
+            calculationTimer = 0;
+        }, state.reducedMotion ? 1200 : 2400);
     };
 
     const setTargetPosition = (position) => {
@@ -330,7 +277,7 @@ export function createRoboticsLab(root) {
         state.target.copy(position);
     };
 
-    const updateReadouts = () => {
+    const updateReadouts = (notify = false) => {
         const kinematics = forwardKinematics(state.joints);
         const jacobian = calculateJacobian(state.joints);
         state.currentPosition.copy(kinematics.position);
@@ -341,25 +288,22 @@ export function createRoboticsLab(root) {
         );
         transform.compose(state.currentPosition, orientation, IDENTITY_SCALE);
 
-        setOutput(outputs.joints, formatJointVector(state.joints));
-        setOutput(outputs.target, formatVector(state.target));
-        setOutput(outputs.current, formatVector(state.currentPosition));
-        setOutput(
-            outputs.error,
-            `${formatVector(state.error)}\n‖e‖ = ${formatNumber(state.error.length(), 4)} m`
-        );
-        setOutput(outputs.jacobian, formatJacobian(jacobian));
-        setOutput(outputs.transform, formatMatrix(transform));
+        if (notify || state.calculationPending) {
+            showCalculation([
+                `IK step · ‖e‖ = ${formatNumber(state.error.length(), 4)} m`,
+                `q = ${formatJointVector(state.joints)}`
+            ]);
+            state.calculationPending = false;
+        }
     };
 
     const showFallback = (reason) => {
         canvas.dataset.fallback = 'true';
         canvas.setAttribute('aria-hidden', 'true');
         fallback.hidden = false;
-        if (reason && fallbackCopy) {
-            fallbackCopy.textContent = `WebGL could not be initialized (${reason}). The live calculation readout is still available below.`;
+        if (fallbackCopy) {
+            fallbackCopy.textContent = 'WebGL unavailable.';
         }
-        setStatus('WEBGL UNAVAILABLE', 'fallback');
     };
 
     try {
@@ -369,6 +313,7 @@ export function createRoboticsLab(root) {
             canvas,
             powerPreference: 'high-performance'
         });
+        renderer.setClearColor(0x000000, 0);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) {
@@ -392,8 +337,8 @@ export function createRoboticsLab(root) {
 
     if (renderer) {
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x091223);
-        scene.fog = new THREE.Fog(0x091223, 5.8, 9.5);
+        scene.background = null;
+        scene.fog = null;
         camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
         camera.position.set(4.3, 3.05, 5.2);
         camera.lookAt(0, 1.22, 0);
@@ -417,18 +362,6 @@ export function createRoboticsLab(root) {
 
         const stage = new THREE.Group();
         scene.add(stage);
-        const floor = new THREE.Mesh(
-            new THREE.CircleGeometry(3.7, 64),
-            new THREE.MeshStandardMaterial({ color: 0x0d1b32, metalness: 0.3, roughness: 0.78 })
-        );
-        floor.rotation.x = -Math.PI / 2;
-        floor.receiveShadow = true;
-        stage.add(floor);
-        const grid = new THREE.GridHelper(7.2, 18, 0x28466a, 0x182c4b);
-        grid.position.y = 0.008;
-        grid.material.transparent = true;
-        grid.material.opacity = 0.38;
-        stage.add(grid);
 
         const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x243b66, metalness: 0.74, roughness: 0.29 });
         const accentMaterial = new THREE.MeshStandardMaterial({ color: 0x4d9ee8, emissive: 0x102c5d, emissiveIntensity: 0.72, metalness: 0.58, roughness: 0.28 });
@@ -550,6 +483,7 @@ export function createRoboticsLab(root) {
             hit.add(dragOffset);
             setTargetPosition(hit);
             targetGroup.position.copy(state.target);
+            state.calculationPending = true;
         }
     };
 
@@ -591,6 +525,7 @@ export function createRoboticsLab(root) {
         const next = state.target.clone();
         next[axis] += amount;
         setTargetPosition(next);
+        state.calculationPending = true;
         if (targetGroup) {
             targetGroup.position.copy(state.target);
         }
@@ -613,7 +548,6 @@ export function createRoboticsLab(root) {
             nudgeTarget('z', amount);
         } else if (event.key === ' ') {
             state.paused = !state.paused;
-            setStatus(state.paused ? 'PAUSED' : 'TRACKING', state.paused ? 'paused' : 'tracking');
         } else if (event.key.toLowerCase() === 'r') {
             reset();
         } else {
@@ -629,11 +563,11 @@ export function createRoboticsLab(root) {
         setTargetPosition(new THREE.Vector3(INITIAL_TARGET.x, INITIAL_TARGET.y, INITIAL_TARGET.z));
         state.paused = false;
         state.dragging = false;
+        state.calculationPending = true;
         if (targetGroup) {
             targetGroup.position.copy(state.target);
         }
-        setStatus('TRACKING', 'tracking');
-        updateReadouts();
+        updateReadouts(true);
     };
 
     const solveIK = (deltaTime) => {
@@ -739,11 +673,6 @@ export function createRoboticsLab(root) {
     addListener(canvas, 'pointerup', onPointerUp, undefined, cleanupTasks);
     addListener(canvas, 'pointercancel', onPointerUp, undefined, cleanupTasks);
     addListener(canvas, 'keydown', onKeyDown, undefined, cleanupTasks);
-    addListener(pauseButton, 'click', () => {
-        state.paused = !state.paused;
-        setStatus(state.paused ? 'PAUSED' : 'TRACKING', state.paused ? 'paused' : 'tracking');
-    }, undefined, cleanupTasks);
-    addListener(resetButton, 'click', reset, undefined, cleanupTasks);
 
     if (renderer) {
         if (typeof ResizeObserver !== 'undefined') {
@@ -761,9 +690,6 @@ export function createRoboticsLab(root) {
         const motionQuery = windowRef.matchMedia('(prefers-reduced-motion: reduce)');
         const onMotionChange = (event) => {
             state.reducedMotion = event.matches;
-            motionNote.textContent = state.reducedMotion
-                ? 'Reduced motion enabled · DLS λ = 0.18 · positions are in metres · joint angles are in radians'
-                : 'DLS λ = 0.18 · positions are in metres · joint angles are in radians';
         };
         if (motionQuery.addEventListener) {
             motionQuery.addEventListener('change', onMotionChange);
@@ -774,7 +700,7 @@ export function createRoboticsLab(root) {
         }
     }
 
-    updateReadouts();
+    updateReadouts(true);
 
     return () => {
         if (state.disposed) {
@@ -783,6 +709,9 @@ export function createRoboticsLab(root) {
         state.disposed = true;
         if (animationFrame) {
             cancelFrame(animationFrame);
+        }
+        if (calculationTimer) {
+            clearTimer(calculationTimer);
         }
         cleanupTasks.forEach((cleanup) => cleanup());
         if (renderer) {
