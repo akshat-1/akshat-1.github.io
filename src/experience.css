@@ -12,6 +12,9 @@
 .detail-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(330px, .75fr); gap: 100px; padding-top: 65px; }
 .detail-story { max-width: 710px; }
 .detail-story > p:not(.micro-label) { color: var(--muted); font-size: .94rem; line-height: 1.85; }
+.detail-week { display: grid; grid-template-columns: 155px minmax(0, 1fr); gap: 24px; padding: 22px 0; border-top: 1px solid var(--line); }
+.detail-week-label { margin: 0; color: var(--cyan); font-family: var(--mono); font-size: .62rem; letter-spacing: .05em; line-height: 1.55; text-transform: uppercase; }
+.detail-week > p:last-child { margin: 0; color: var(--muted); font-size: .94rem; line-height: 1.85; }
 .detail-workstreams { margin-top: 45px; padding-top: 22px; border-top: 1px solid var(--line); }
 .detail-workstreams .tag-row { margin-top: 15px; }
 .certificate-column { min-width: 0; }
@@ -33,5 +36,6 @@
     .detail-hero h1 { font-size: clamp(2.8rem, 14vw, 5rem); }
     .detail-institute-logo { width: 65px; height: 65px; margin-top: 30px; }
     .detail-layout { padding-top: 42px; }
+    .detail-week { grid-template-columns: 1fr; gap: 8px; }
     .certificate-frame { height: 70vh; }
 }

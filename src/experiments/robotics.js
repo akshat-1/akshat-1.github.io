@@ -454,6 +454,15 @@ export function createRoboticsLab(root) {
         if (!renderer || !camera || !goalPlane) {
             return;
         }
+        const bounds = canvas.getBoundingClientRect();
+        if (
+            event.clientX < bounds.left ||
+            event.clientX > bounds.right ||
+            event.clientY < bounds.top ||
+            event.clientY > bounds.bottom
+        ) {
+            return;
+        }
         setPointer(event);
         raycaster.setFromCamera(pointer, camera);
         const hit = new THREE.Vector3();
@@ -597,7 +606,11 @@ export function createRoboticsLab(root) {
         animationFrame = requestFrame(frame);
     };
 
-    addListener(canvas, 'pointermove', updateTargetFromPointer, undefined, cleanupTasks);
+    if (windowRef) {
+        addListener(windowRef, 'pointermove', updateTargetFromPointer, undefined, cleanupTasks);
+    } else {
+        addListener(canvas, 'pointermove', updateTargetFromPointer, undefined, cleanupTasks);
+    }
     addListener(canvas, 'keydown', onKeyDown, undefined, cleanupTasks);
 
     if (renderer) {

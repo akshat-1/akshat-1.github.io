@@ -12,6 +12,12 @@ const item = portfolio.experience.find((entry) => entry.slug === requestedRole) 
 const detail = item.detail;
 const content = document.querySelector('[data-detail-content]');
 const certificateUrl = `${detail.certificate}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&commenting=0&annotation=0&view=FitH`;
+const renderContext = detail.context.map((entry) => {
+    if (typeof entry === 'string') {
+        return `<p>${escapeHtml(entry)}</p>`;
+    }
+    return `<div class="detail-week"><p class="detail-week-label">${escapeHtml(entry.period)}</p><p>${escapeHtml(entry.text)}</p></div>`;
+}).join('');
 
 document.title = `${item.company} — ${item.role} — Akshat Porwal`;
 
@@ -29,13 +35,13 @@ content.innerHTML = `
     <div class="detail-layout">
         <article class="detail-story">
             <p class="micro-label">Context &amp; contribution</p>
-            ${detail.context.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join('')}
+            ${renderContext}
             <div class="detail-workstreams"><p class="micro-label">Workstreams</p><div class="tag-row">${detail.workstreams.map((stream) => `<span>${escapeHtml(stream)}</span>`).join('')}</div></div>
         </article>
         <aside class="certificate-column">
             <div class="certificate-header"><div><p class="micro-label">Document vault</p><h2>${escapeHtml(detail.certificateLabel)}</h2></div><span class="view-only-badge">VIEW ONLY</span></div>
             <div class="certificate-frame" oncontextmenu="return false">
-                <iframe src="${escapeHtml(certificateUrl)}" title="${escapeHtml(detail.certificateLabel)}" loading="lazy" sandbox="allow-same-origin" tabindex="-1" aria-readonly="true"></iframe>
+                <iframe src="${escapeHtml(certificateUrl)}" title="${escapeHtml(detail.certificateLabel)}" loading="eager" tabindex="-1" aria-readonly="true"></iframe>
                 <div class="certificate-shield" aria-hidden="true"></div>
             </div>
             <p class="certificate-note">This certificate is displayed in a locked, view-only frame. Comment, draw, download, print, and other editing actions are disabled.</p>
