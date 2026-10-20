@@ -155,6 +155,8 @@ html[data-theme="light"] .experience-card:hover { background: rgba(255, 255, 255
 .experience-summary { max-width: 760px; color: var(--muted); font-size: .88rem; }
 .experience-main ul { display: grid; gap: 7px; margin: 20px 0; padding: 0 0 0 17px; color: var(--muted); font-size: .78rem; line-height: 1.55; }
 .experience-main li::marker { color: var(--cyan); }
+.experience-see-more { margin: 0 0 17px; color: var(--violet); font-family: var(--mono); font-size: .68rem; letter-spacing: .04em; }
+.experience-card:hover .experience-see-more { color: var(--cyan); }
 .tag-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag-row span, .skill-tags span, .coursework-list span { padding: 5px 8px; border: 1px solid var(--line); border-radius: 3px; color: var(--faint); font-family: var(--mono); font-size: .57rem; }
 .current-grid { display: grid; grid-template-columns: 1.35fr .8fr; gap: 100px; align-items: start; }
