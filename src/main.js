@@ -40,6 +40,32 @@ function detectWebGL2() {
     return Boolean(context);
 }
 
+function updateWebGLStatusFromRenderers() {
+    const hasWorkingRenderer = document.querySelector('[data-webgl-ready="true"]');
+    const hasFailedRenderer = document.querySelector('[data-webgl-ready="false"]');
+    if (!hasWorkingRenderer || hasFailedRenderer) {
+        showWebGLStatus(hasWorkingRenderer
+            ? 'Some 3D visuals could not be created'
+            : 'No compatible 3D renderer could be created');
+    }
+}
+
+function monitorWebGLContexts() {
+    document.querySelectorAll('canvas[data-webgl-ready]').forEach((canvas) => {
+        canvas.addEventListener('webglcontextlost', () => {
+            canvas.dataset.webglReady = 'false';
+            updateWebGLStatusFromRenderers();
+        }, { passive: true });
+        canvas.addEventListener('webglcontextrestored', () => {
+            canvas.dataset.webglReady = 'true';
+            const status = document.querySelector('[data-webgl-status]');
+            if (status && !document.querySelector('[data-webgl-ready="false"]')) {
+                status.hidden = true;
+            }
+        }, { passive: true });
+    });
+}
+
 const escapeHtml = (value) => String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -83,7 +109,9 @@ function makeAmbientScene(root, type) {
     let renderer;
     try {
         renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true, powerPreference: 'low-power' });
+        canvas.dataset.webglReady = 'true';
     } catch {
+        canvas.dataset.webglReady = 'false';
         root.classList.add('scene-fallback');
         root.insertAdjacentHTML('beforeend', '<span class="scene-fallback-label">3D visual paused · WebGL unavailable</span>');
         return () => {};
@@ -191,6 +219,8 @@ function init() {
     document.querySelectorAll('[data-ambient-scene]').forEach((root) => makeAmbientScene(root, root.dataset.ambientScene));
     createRoboticsLab(document.querySelector('#robotics-root'));
     createNeuralLab(document.querySelector('#neural-root'));
+    monitorWebGLContexts();
+    updateWebGLStatusFromRenderers();
 }
 
 init();

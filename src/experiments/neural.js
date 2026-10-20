@@ -471,6 +471,7 @@ export function createNeuralLab(root) {
             canvas,
             powerPreference: 'default'
         });
+        canvas.dataset.webglReady = 'true';
         renderer.setClearColor(0x000000, 0);
         renderer.setPixelRatio(Math.min(windowRef && windowRef.devicePixelRatio ? windowRef.devicePixelRatio : 1, 2));
         if ('outputColorSpace' in renderer && THREE.SRGBColorSpace) {
@@ -478,6 +479,7 @@ export function createNeuralLab(root) {
         }
     } catch (error) {
         const reason = error && error.message ? error.message : 'the graphics context is unavailable';
+        canvas.dataset.webglReady = 'false';
         showFallback(reason);
     }
 

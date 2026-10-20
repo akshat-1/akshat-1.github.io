@@ -318,6 +318,7 @@ export function createRoboticsLab(root) {
             canvas,
             powerPreference: 'default'
         });
+        canvas.dataset.webglReady = 'true';
         renderer.setClearColor(0x000000, 0);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -326,6 +327,7 @@ export function createRoboticsLab(root) {
         }
     } catch (error) {
         const reason = error && error.message ? error.message : 'the graphics context is unavailable';
+        canvas.dataset.webglReady = 'false';
         showFallback(reason);
     }
 
