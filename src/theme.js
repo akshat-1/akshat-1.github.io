@@ -39,3 +39,24 @@ export function setupThemeToggle(documentRef = document, windowRef = window) {
         }
     });
 }
+
+export async function loadViewCount(documentRef = document, windowRef = window) {
+    const countElement = documentRef.querySelector('[data-view-count]');
+    if (!countElement) {
+        return;
+    }
+    try {
+        const response = await windowRef.fetch(`./view-count.json?ts=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`view-count.json returned ${response.status}`);
+        }
+        const payload = await response.json();
+        const count = Number(payload.count);
+        if (!Number.isFinite(count) || count < 0) {
+            throw new Error('invalid view count');
+        }
+        countElement.textContent = `Views / ${new Intl.NumberFormat().format(Math.floor(count))}`;
+    } catch {
+        countElement.textContent = 'Views / —';
+    }
+}

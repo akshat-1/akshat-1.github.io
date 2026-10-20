@@ -1,5 +1,5 @@
 import { portfolio } from './data/portfolio.js';
-import { setupThemeToggle } from './theme.js';
+import { loadViewCount, setupThemeToggle } from './theme.js';
 
 const escapeHtml = (value) => String(value)
     .replaceAll('&', '&amp;')
@@ -34,6 +34,7 @@ const renderContext = detail.context.map((entry) => {
 }).join('');
 
 setupThemeToggle();
+loadViewCount();
 
 document.title = `${item.company} — ${item.role} — Akshat Porwal`;
 

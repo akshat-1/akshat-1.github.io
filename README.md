@@ -59,6 +59,12 @@ Push to `main`. `.github/workflows/deploy.yml` installs the pinned Node.js versi
 
 The repository should have GitHub Pages configured to use **GitHub Actions** as its build and deployment source. The committed branch-root fallback keeps the page usable while that setting is being changed.
 
+### Daily public view count
+
+The site tracks pageviews with GoatCounter. A scheduled workflow runs once per day, reads the total from GoatCounter using the repository secret named `GOATCOUNTER_API`, writes `public/view-count.json`, and deploys the refreshed static count to GitHub Pages. The API key is used only inside GitHub Actions and is never included in the browser bundle.
+
+To run the refresh immediately, open the repository's **Actions** tab, select **Update portfolio view count**, and choose **Run workflow**. The displayed value is a daily-refreshed GoatCounter total, not a real-time count.
+
 ## Content and assets
 
 - Portfolio copy is in `src/data/portfolio.js`.

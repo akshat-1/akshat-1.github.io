@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { portfolio } from './data/portfolio.js';
 import { createRoboticsLab } from './experiments/robotics.js';
 import { createNeuralLab } from './experiments/neural.js';
-import { setupThemeToggle } from './theme.js';
+import { loadViewCount, setupThemeToggle } from './theme.js';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -211,7 +211,7 @@ function setupInteractions() {
 }
 
 function init() {
-    renderContent(); setupInteractions(); setupThemeToggle();
+    renderContent(); setupInteractions(); setupThemeToggle(); loadViewCount();
     if (!detectWebGL2()) {
         showWebGLStatus();
         return;
