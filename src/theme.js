@@ -45,17 +45,22 @@ export async function loadViewCount(documentRef = document, windowRef = window) 
     if (!countElement) {
         return;
     }
+    const paths = ['./public/view-count.json', './view-count.json'];
     try {
-        const response = await windowRef.fetch(`./view-count.json?ts=${Date.now()}`, { cache: 'no-store' });
-        if (!response.ok) {
-            throw new Error(`view-count.json returned ${response.status}`);
+        for (const path of paths) {
+            const response = await windowRef.fetch(`${path}?ts=${Date.now()}`, { cache: 'no-store' });
+            if (!response.ok) {
+                continue;
+            }
+            const payload = await response.json();
+            const count = Number(payload.count);
+            if (!Number.isFinite(count) || count < 0) {
+                continue;
+            }
+            countElement.textContent = `Views / ${new Intl.NumberFormat().format(Math.floor(count))}`;
+            return;
         }
-        const payload = await response.json();
-        const count = Number(payload.count);
-        if (!Number.isFinite(count) || count < 0) {
-            throw new Error('invalid view count');
-        }
-        countElement.textContent = `Views / ${new Intl.NumberFormat().format(Math.floor(count))}`;
+        throw new Error('view-count.json was not found');
     } catch {
         countElement.textContent = 'Views / —';
     }

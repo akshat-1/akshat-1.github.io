@@ -9,7 +9,7 @@ if (!process.env.GOATCOUNTER_API_URL) {
     apiUrl.searchParams.set('start', '2020-01-01T00:00:00Z');
     apiUrl.searchParams.set('end', end.toISOString());
 }
-const outputPath = 'public/view-count.json';
+const outputPaths = ['public/view-count.json', 'view-count.json'];
 
 if (!token) {
     throw new Error('GOATCOUNTER_API_KEY is not set. Add the GOATCOUNTER_API GitHub Actions secret.');
@@ -35,10 +35,11 @@ if (!Number.isFinite(count) || count < 0) {
 }
 
 await mkdir('public', { recursive: true });
-await writeFile(outputPath, `${JSON.stringify({
+const output = `${JSON.stringify({
     count: Math.floor(count),
     source: 'GoatCounter',
     updatedAt: new Date().toISOString()
-}, null, 2)}\n`);
+}, null, 2)}\n`;
+await Promise.all(outputPaths.map((outputPath) => writeFile(outputPath, output)));
 
-console.log(`Updated ${outputPath} with ${Math.floor(count)} GoatCounter pageviews.`);
+console.log(`Updated ${outputPaths.join(' and ')} with ${Math.floor(count)} GoatCounter pageviews.`);
