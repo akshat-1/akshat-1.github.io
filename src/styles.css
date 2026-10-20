@@ -29,8 +29,7 @@ button { font: inherit; }
 .site-header.is-scrolled { border-color: var(--line); background: rgba(7, 10, 18, .78); backdrop-filter: blur(18px); }
 .brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .brand-institute-logo { width: 28px; height: 28px; object-fit: contain; mix-blend-mode: screen; opacity: .9; }
-.brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid rgba(98, 238, 209, .5); border-radius: 50%; color: var(--cyan); font-family: var(--mono); font-size: .75rem; font-weight: 700; box-shadow: 0 0 24px rgba(98, 238, 209, .14); }
-.brand-dot { color: var(--amber); }
+.brand-profile-photo { width: 40px; height: 40px; border: 1px solid rgba(98, 238, 209, .5); border-radius: 50%; object-fit: cover; object-position: center; box-shadow: 0 0 24px rgba(98, 238, 209, .14); }
 .brand-copy { color: var(--ink); font-family: var(--mono); font-size: .65rem; font-weight: 800; letter-spacing: .13em; line-height: 1.2; }
 .brand-copy small { display: block; margin-top: 3px; color: var(--faint); font-size: .48rem; font-weight: 500; letter-spacing: .1em; }
 .desktop-nav { display: flex; align-items: center; gap: clamp(18px, 2.5vw, 38px); margin-left: auto; color: var(--muted); font-family: var(--mono); font-size: .63rem; letter-spacing: .04em; }
