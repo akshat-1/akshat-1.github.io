@@ -71,7 +71,7 @@ function makeAmbientScene(root, type) {
     const blue = new THREE.MeshBasicMaterial({ color: 0x6ba2ff, transparent: true, opacity: 0.55 });
     const muted = new THREE.MeshBasicMaterial({ color: 0x415984, transparent: true, opacity: 0.35 });
     const geometries = [];
-    const add = (mesh) => { group.add(mesh); geometries.push(mesh); return mesh; };
+    const add = (mesh) => { mesh.userData.baseY = mesh.position.y; group.add(mesh); geometries.push(mesh); return mesh; };
 
     if (type === 'hero') {
         add(new THREE.Mesh(new THREE.IcosahedronGeometry(1.5, 2), new THREE.MeshBasicMaterial({ color: 0x62eed1, wireframe: true, transparent: true, opacity: 0.32 })));
@@ -105,8 +105,17 @@ function makeAmbientScene(root, type) {
     }
 
     const pointer = { x: 0, y: 0 };
-    const onPointerMove = (event) => { const rect = root.getBoundingClientRect(); pointer.x = ((event.clientX - rect.left) / rect.width - 0.5) * 2; pointer.y = ((event.clientY - rect.top) / rect.height - 0.5) * 2; };
-    root.addEventListener('pointermove', onPointerMove, { passive: true });
+    const onPointerMove = (event) => {
+        const rect = root.getBoundingClientRect();
+        if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+            pointer.x += (0 - pointer.x) * 0.08;
+            pointer.y += (0 - pointer.y) * 0.08;
+            return;
+        }
+        pointer.x = ((event.clientX - rect.left) / Math.max(rect.width, 1) - 0.5) * 2;
+        pointer.y = ((event.clientY - rect.top) / Math.max(rect.height, 1) - 0.5) * 2;
+    };
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
     let width = 0; let height = 0;
     const resize = () => { width = Math.max(root.clientWidth, 320); height = Math.max(root.clientHeight, 180); renderer.setSize(width, height, false); camera.aspect = width / height; camera.updateProjectionMatrix(); };
     const resizeObserver = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(resize) : null;
@@ -114,11 +123,11 @@ function makeAmbientScene(root, type) {
     else window.addEventListener('resize', resize, { passive: true });
     resize();
     let active = true; let frameId = 0; const clock = new THREE.Clock();
-    const render = () => { if (!active) return; const elapsed = clock.getElapsedTime(); if (!reduceMotion) { group.rotation.y += 0.0022; group.rotation.x += 0.0005; } group.rotation.y += (pointer.x * 0.1 - group.rotation.y) * 0.008; group.rotation.x += (-pointer.y * 0.07 - group.rotation.x) * 0.008; geometries.forEach((mesh, index) => { if (mesh.isMesh) mesh.position.y += Math.sin(elapsed * 0.7 + index) * (reduceMotion ? 0 : 0.00035); }); renderer.render(scene, camera); frameId = requestAnimationFrame(render); };
+    const render = () => { if (!active) return; const elapsed = clock.getElapsedTime(); if (!reduceMotion) { group.rotation.y += 0.0022; group.rotation.x += 0.0005; } group.rotation.y += (pointer.x * 0.1 - group.rotation.y) * 0.008; group.rotation.x += (-pointer.y * 0.07 - group.rotation.x) * 0.008; group.position.x += (pointer.x * 0.075 - group.position.x) * 0.025; group.position.y += (-pointer.y * 0.045 - group.position.y) * 0.025; light.position.x += (2 + pointer.x * 1.5 - light.position.x) * 0.03; light.position.y += (2 - pointer.y * 1.1 - light.position.y) * 0.03; geometries.forEach((mesh, index) => { if (mesh.isMesh) mesh.position.y = mesh.userData.baseY + Math.sin(elapsed * 0.7 + index) * (reduceMotion ? 0 : 0.00035); }); renderer.render(scene, camera); frameId = requestAnimationFrame(render); };
     const visibilityObserver = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver((entries) => { active = entries[0].isIntersecting; if (active && !frameId) render(); if (!active && frameId) { cancelAnimationFrame(frameId); frameId = 0; } }, { threshold: 0.05 }) : null;
     if (visibilityObserver) visibilityObserver.observe(root);
     render();
-    return () => { active = false; cancelAnimationFrame(frameId); visibilityObserver?.disconnect(); resizeObserver?.disconnect(); if (!resizeObserver) window.removeEventListener('resize', resize); root.removeEventListener('pointermove', onPointerMove); geometries.forEach((mesh) => { mesh.geometry?.dispose(); if (mesh.material) mesh.material.dispose(); }); renderer.dispose(); };
+    return () => { active = false; cancelAnimationFrame(frameId); visibilityObserver?.disconnect(); resizeObserver?.disconnect(); if (!resizeObserver) window.removeEventListener('resize', resize); window.removeEventListener('pointermove', onPointerMove); geometries.forEach((mesh) => { mesh.geometry?.dispose(); if (mesh.material) mesh.material.dispose(); }); renderer.dispose(); };
 }
 
 function setupInteractions() {
