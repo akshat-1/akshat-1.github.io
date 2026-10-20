@@ -95,12 +95,15 @@
 
     .robotics-lab__calculation {
         top: auto;
-        right: 12px;
+        right: 28px;
         bottom: clamp(42px, 8vh, 86px);
-        width: calc(100% - 32px);
-        font-size: clamp(0.43rem, 1.7vw, 0.55rem);
+        width: calc(100% - 56px);
+        max-width: calc(100% - 56px);
+        font-size: clamp(0.4rem, 1.55vw, 0.52rem);
         line-height: 1.3;
         transform: translate3d(3px, 0, 0);
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
     }
 
     .robotics-lab__calculation.is-visible {
