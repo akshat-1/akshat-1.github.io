@@ -6,6 +6,13 @@
     <meta name="theme-color" content="#070a12">
     <meta name="description" content="Professional experience case file — Akshat Porwal.">
     <title>Experience case file — Akshat Porwal</title>
+    <script>
+        try {
+            const storedTheme = localStorage.getItem('akshat-portfolio-theme');
+            const theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+            if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+        } catch {}
+    </script>
     <link rel="stylesheet" href="./src/styles.css">
     <link rel="stylesheet" href="./src/experience.css">
     <script type="importmap">
@@ -24,6 +31,7 @@
             <img class="brand-profile-photo" src="./assets/profile-photo.png" alt="Akshat Porwal">
             <span class="brand-copy">AKSHAT PORWAL<small>EXPERIENCE CASE FILE</small></span>
         </a>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light mode">Light mode</button>
         <a class="header-resume" href="./index.html#experience">Back to experience <span>↗</span></a>
     </header>
 

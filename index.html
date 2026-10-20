@@ -6,6 +6,13 @@
     <meta name="theme-color" content="#070a12">
     <meta name="description" content="Akshat Porwal — AI, robotics, computer vision, and systems portfolio.">
     <title>Akshat Porwal — AI · Robotics · Systems</title>
+    <script>
+        try {
+            const storedTheme = localStorage.getItem('akshat-portfolio-theme');
+            const theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+            if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+        } catch {}
+    </script>
     <link rel="stylesheet" href="./src/styles.css">
     <link rel="stylesheet" href="./src/experiments/robotics.css">
     <link rel="stylesheet" href="./src/experiments/neural.css">
@@ -36,6 +43,7 @@
             <a href="https://github.com/akshat-1" target="_blank" rel="noreferrer">GitHub ↗</a>
             <a href="https://www.linkedin.com/in/akshat-porwal-iitm/" target="_blank" rel="noreferrer">LinkedIn ↗</a>
         </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light mode">Light mode</button>
         <a class="header-resume" href="./Akshat_Porwal_Resume.pdf" download>Resume <span>↗</span></a>
         <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" data-menu-toggle><span></span><span></span></button>
     </header>

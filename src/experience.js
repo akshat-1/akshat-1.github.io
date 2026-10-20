@@ -1,4 +1,5 @@
 import { portfolio } from './data/portfolio.js';
+import { setupThemeToggle } from './theme.js';
 
 const escapeHtml = (value) => String(value)
     .replaceAll('&', '&amp;')
@@ -11,6 +12,10 @@ const requestedRole = new URLSearchParams(window.location.search).get('role');
 const item = portfolio.experience.find((entry) => entry.slug === requestedRole) || portfolio.experience[0];
 const detail = item.detail;
 const content = document.querySelector('[data-detail-content]');
+const isDeutscheBankCaseFile = item.slug === 'deutsche-bank';
+if (isDeutscheBankCaseFile) {
+    document.querySelector('.brand-institute-logo')?.remove();
+}
 const zoomLevels = [
     { label: '80%', scale: 0.8 },
     { label: '100%', scale: 1 },
@@ -28,6 +33,8 @@ const renderContext = detail.context.map((entry) => {
     return `<div class="detail-week"><p class="detail-week-label">${escapeHtml(entry.period)}</p><p>${escapeHtml(entry.text)}</p></div>`;
 }).join('');
 
+setupThemeToggle();
+
 document.title = `${item.company} — ${item.role} — Akshat Porwal`;
 
 content.innerHTML = `
@@ -38,7 +45,7 @@ content.innerHTML = `
             <p class="detail-intro">${escapeHtml(detail.intro)}</p>
             <div class="detail-meta"><span>${escapeHtml(item.company)}</span><span>${escapeHtml(item.period)}</span><span>${escapeHtml(item.role)}</span></div>
         </div>
-        <img class="detail-institute-logo" src="./assets/iitm-logo.png" alt="Indian Institute of Technology Madras logo">
+        ${isDeutscheBankCaseFile ? '' : '<img class="detail-institute-logo" src="./assets/iitm-logo.png" alt="Indian Institute of Technology Madras logo">'}
     </header>
 
     <div class="detail-layout">
