@@ -15,6 +15,13 @@ function showWebGLStatus(reason = 'WebGL 2 is unavailable') {
     status.dataset.reason = reason;
 }
 
+document.querySelector('[data-webgl-status-dismiss]')?.addEventListener('click', () => {
+    const status = document.querySelector('[data-webgl-status]');
+    if (status) {
+        status.hidden = true;
+    }
+});
+
 function detectWebGL2() {
     const canvas = document.createElement('canvas');
     let context = null;
