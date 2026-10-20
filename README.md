@@ -63,7 +63,8 @@ The repository should have GitHub Pages configured to use **GitHub Actions** as 
 
 - Portfolio copy is in `src/data/portfolio.js`.
 - The resume download is `public/Akshat_Porwal_Resume.pdf`.
-- The current profile image is a geometric placeholder at `public/assets/profile-placeholder.svg`. Replace it with a profile photo when available and update `photo` in `src/data/portfolio.js` if the filename changes.
+- The profile photo is `public/assets/profile-photo.png` and the IIT Madras logo is `public/assets/iitm-logo.png`.
+- Professional-experience cards open `experience.html` in a new tab with context-specific case-file content and an embedded view-only certificate. Browser PDF viewers and operating systems cannot technically prevent screenshots, but download/print controls are omitted and right-click is blocked inside the certificate frame.
 - Update the GitHub and LinkedIn URLs in `src/data/portfolio.js` if the public profile URLs differ.
 
 ## Project structure
@@ -71,6 +72,7 @@ The repository should have GitHub Pages configured to use **GitHub Actions** as 
 ```text
 .
 ├── index.html
+├── experience.html                  # read-only experience case-file page
 ├── src/
 │   ├── data/portfolio.js
 │   ├── experiments/
@@ -79,10 +81,14 @@ The repository should have GitHub Pages configured to use **GitHub Actions** as 
 │   │   ├── robotics.js
 │   │   └── robotics.css
 │   ├── main.js
+│   ├── experience.js
+│   ├── experience.css
 │   └── styles.css
 ├── public/
 │   ├── Akshat_Porwal_Resume.pdf
-│   └── assets/profile-placeholder.svg
+│   ├── assets/profile-photo.png
+│   ├── assets/iitm-logo.png
+│   └── certificates/                 # view-only certificate sources
 ├── assets/                         # branch-root compatibility mirror
 ├── vendor/                         # branch-root Three.js runtime
 ├── scripts/smoke-test.mjs

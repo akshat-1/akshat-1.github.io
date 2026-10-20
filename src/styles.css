@@ -28,6 +28,7 @@ button { font: inherit; }
 .site-header { position: fixed; top: 0; right: 0; left: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 30px; min-height: 80px; padding: 17px clamp(22px, 5vw, 76px); border-bottom: 1px solid transparent; transition: background .3s ease, border-color .3s ease, backdrop-filter .3s ease; }
 .site-header.is-scrolled { border-color: var(--line); background: rgba(7, 10, 18, .78); backdrop-filter: blur(18px); }
 .brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.brand-institute-logo { width: 28px; height: 28px; object-fit: contain; mix-blend-mode: screen; opacity: .9; }
 .brand-mark { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid rgba(98, 238, 209, .5); border-radius: 50%; color: var(--cyan); font-family: var(--mono); font-size: .75rem; font-weight: 700; box-shadow: 0 0 24px rgba(98, 238, 209, .14); }
 .brand-dot { color: var(--amber); }
 .brand-copy { color: var(--ink); font-family: var(--mono); font-size: .65rem; font-weight: 800; letter-spacing: .13em; line-height: 1.2; }
@@ -44,7 +45,6 @@ button { font: inherit; }
 .mobile-menu a { padding: 12px; border-bottom: 1px solid var(--line); color: var(--muted); font-family: var(--mono); font-size: .73rem; }
 .mobile-menu a:last-child { border: 0; }
 .section-pad { width: min(1240px, calc(100% - 44px)); margin: 0 auto; padding-top: clamp(110px, 13vw, 180px); padding-bottom: clamp(100px, 12vw, 170px); }
-.section-pad-compact { padding-top: 36px; padding-bottom: 45px; }
 .hero { position: relative; display: flex; align-items: center; min-height: 820px; padding-top: 150px; overflow: hidden; }
 .hero-copy { position: relative; z-index: 1; max-width: 700px; }
 .eyebrow, .micro-label { margin: 0; color: var(--cyan); font-family: var(--mono); font-size: .64rem; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
@@ -67,7 +67,7 @@ h1 em, h2 em { color: var(--cyan); font-family: Georgia, serif; font-weight: 400
 .hero-meta strong { color: var(--muted); font-weight: 500; }
 .meta-separator { width: 4px; height: 4px; border-radius: 50%; background: var(--violet); }
 .profile-inline { display: flex; align-items: center; gap: 15px; max-width: 390px; margin-top: 34px; }
-.profile-inline img { width: 54px; height: 54px; border: 1px solid rgba(98, 238, 209, .45); border-radius: 7px; object-fit: cover; }
+.profile-inline img { width: 82px; height: 82px; border: 1px solid rgba(98, 238, 209, .45); border-radius: 50%; object-fit: cover; object-position: center; box-shadow: 0 0 26px rgba(98, 238, 209, .12); }
 .profile-inline div { min-width: 0; }
 .profile-inline span, .profile-inline small, .profile-inline a { display: block; font-family: var(--mono); }
 .profile-inline span { margin-bottom: 4px; color: var(--cyan); font-size: .52rem; letter-spacing: .09em; }
@@ -84,16 +84,13 @@ h1 em, h2 em { color: var(--cyan); font-family: Georgia, serif; font-weight: 400
 .hero-bottomline { position: absolute; right: 0; bottom: 50px; left: 0; display: flex; align-items: center; gap: 12px; color: var(--faint); font-family: var(--mono); font-size: .56rem; letter-spacing: .12em; }
 .scroll-arrow { color: var(--cyan); font-size: 1rem; }
 .hero-index { margin-left: auto; }
-.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.metric { min-height: 115px; padding: 24px 30px; border-right: 1px solid var(--line); }
-.metric:last-child { border-right: 0; }
-.metric strong { display: block; margin-bottom: 8px; color: var(--cyan); font-family: var(--mono); font-size: clamp(1.55rem, 3vw, 2.25rem); font-weight: 500; letter-spacing: -.05em; }
-.metric span { color: var(--muted); font-size: .73rem; line-height: 1.4; }
 .content-section { position: relative; }
 .section-dark { width: 100%; padding-right: max(22px, calc((100% - 1240px) / 2)); padding-left: max(22px, calc((100% - 1240px) / 2)); background: linear-gradient(180deg, rgba(13, 19, 35, .72), rgba(7, 10, 18, .42)); }
 .content-section { overflow: hidden; }
 .content-section > :not(.section-visual):not(.lab-space) { position: relative; z-index: 1; }
 .section-heading { max-width: 720px; margin-bottom: 65px; }
+.section-heading-with-logo { display: flex; align-items: center; gap: 18px; }
+.section-institute-logo { width: 58px; height: 58px; object-fit: contain; mix-blend-mode: screen; opacity: .92; }
 .section-heading h2 { margin: 14px 0 19px; font-size: clamp(2.65rem, 5.5vw, 5.2rem); font-weight: 680; letter-spacing: -.075em; line-height: .98; }
 .section-lede { max-width: 430px; color: var(--muted); font-size: .94rem; line-height: 1.75; }
 .split-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 50px; max-width: 100%; }
@@ -109,8 +106,9 @@ h1 em, h2 em { color: var(--cyan); font-family: Georgia, serif; font-weight: 400
 .achievement { display: grid; grid-template-columns: 31px 1fr; gap: 13px; margin: 30px 0; color: var(--muted); font-size: .8rem; line-height: 1.55; }
 .achievement span { color: var(--amber); font-family: var(--mono); font-size: .62rem; }
 .experience-list { display: grid; gap: 17px; }
-.experience-card { display: grid; grid-template-columns: 90px 1fr; gap: 26px; padding: 29px 32px; border: 1px solid var(--line); border-radius: 9px; background: rgba(17, 28, 51, .44); transition: border-color .25s ease, transform .25s ease, background .25s ease; }
+.experience-card { display: grid; grid-template-columns: 90px 1fr; gap: 26px; padding: 29px 32px; border: 1px solid var(--line); border-radius: 9px; color: inherit; background: rgba(17, 28, 51, .44); transition: border-color .25s ease, transform .25s ease, background .25s ease; }
 .experience-card:hover { border-color: rgba(98, 238, 209, .4); background: rgba(17, 35, 57, .64); transform: translateX(5px); }
+.experience-card-link { cursor: pointer; }
 .experience-number { color: var(--faint); font-family: var(--mono); font-size: 1.8rem; }
 .card-topline { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 14px; color: var(--cyan); font-family: var(--mono); font-size: .61rem; letter-spacing: .06em; text-transform: uppercase; }
 .card-status { color: var(--faint); }
@@ -163,6 +161,7 @@ h1 em, h2 em { color: var(--cyan); font-family: Georgia, serif; font-weight: 400
 .coursework-card { padding: 25px; border: 1px solid var(--line); background: rgba(21, 32, 57, .35); }
 .coursework-list { display: grid; gap: 11px; margin-top: 20px; }
 .coursework-list span { color: var(--muted); line-height: 1.45; }
+.coursework-list span b { color: var(--muted); font-family: var(--sans); font-size: .72rem; font-weight: 500; }
 .awards-section { padding-top: 120px; }
 .awards-layout { display: grid; grid-template-columns: .8fr 1.2fr; gap: 100px; align-items: center; }
 .awards-list { border-top: 1px solid var(--line); }
@@ -211,19 +210,17 @@ h1 em, h2 em { color: var(--cyan); font-family: Georgia, serif; font-weight: 400
     .brand-copy { font-size: .57rem; }
     .header-resume { display: none; }
     .section-pad { width: min(100% - 36px, 1240px); padding-top: 90px; padding-bottom: 90px; }
-    .section-pad-compact { padding-top: 25px; padding-bottom: 32px; }
     .hero { padding-top: 118px; }
     h1 { font-size: clamp(3.2rem, 17vw, 5.7rem); }
     .hero-meta { display: grid; gap: 8px; margin-top: 45px; }
     .meta-separator { display: none; }
     .hero-visual { min-height: 350px; }
-    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
-    .metric { min-height: 100px; padding: 17px 15px; border-bottom: 1px solid var(--line); }
-    .metric:nth-child(2) { border-right: 0; }
-    .metric:nth-last-child(-n+2) { border-bottom: 0; }
+    .profile-inline img { width: 68px; height: 68px; }
     .split-heading { display: block; }
     .split-heading .section-lede { margin-top: 20px; }
     .education-item { grid-template-columns: 1fr; gap: 8px; }
+    .section-heading-with-logo { align-items: flex-start; }
+    .section-institute-logo { width: 42px; height: 42px; }
     .experience-card { grid-template-columns: 1fr; gap: 10px; padding: 22px 18px; }
     .experience-number { font-size: 1.2rem; }
     .card-topline { display: block; line-height: 1.8; }

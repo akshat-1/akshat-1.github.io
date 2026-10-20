@@ -13,20 +13,16 @@ const escapeHtml = (value) => String(value)
     .replaceAll("'", '&#039;');
 
 function renderContent() {
-    document.querySelector('[data-metrics]').innerHTML = portfolio.metrics.map((metric) => `
-        <article class="metric reveal"><strong>${escapeHtml(metric.value)}</strong><span>${escapeHtml(metric.label)}</span></article>
-    `).join('');
-
     document.querySelector('[data-education]').innerHTML = portfolio.education.map((item) => `
         <article class="education-item reveal"><div class="item-period">${escapeHtml(item.period)}</div><div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.org)}</p><span>${escapeHtml(item.detail)}</span></div></article>
     `).join('');
     document.querySelector('[data-achievements]').innerHTML = portfolio.achievements.map((item, index) => `<p class="achievement"><span>0${index + 1}</span>${escapeHtml(item)}</p>`).join('');
 
     document.querySelector('[data-experience]').innerHTML = portfolio.experience.map((item) => `
-        <article class="experience-card reveal"><div class="experience-number">${escapeHtml(item.accent)}</div><div class="experience-main"><div class="card-topline"><span>${escapeHtml(item.period)}</span><span class="card-status">SYSTEMS / SECURITY</span></div><h3>${escapeHtml(item.company)}</h3><p class="experience-role">${escapeHtml(item.role)}</p><p class="experience-summary">${escapeHtml(item.summary)}</p><ul>${item.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join('')}</ul><div class="tag-row">${item.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div></div></article>
+        <a class="experience-card experience-card-link reveal" href="./experience.html?role=${encodeURIComponent(item.slug)}" target="_blank" rel="noopener"><div class="experience-number">${escapeHtml(item.accent)}</div><div class="experience-main"><div class="card-topline"><span>${escapeHtml(item.period)}</span><span class="card-status">VIEW CASE FILE ↗</span></div><h3>${escapeHtml(item.company)}</h3><p class="experience-role">${escapeHtml(item.role)}</p><p class="experience-summary">${escapeHtml(item.summary)}</p><ul>${item.bullets.map((bullet) => `<li>${escapeHtml(bullet)}</li>`).join('')}</ul><div class="tag-row">${item.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div></div></a>
     `).join('');
 
-    document.querySelector('[data-current-copy]').innerHTML = `<p class="micro-label">${escapeHtml(portfolio.current.label)}</p><p class="current-statement">${escapeHtml(portfolio.current.copy)}</p>`;
+    document.querySelector('[data-current-copy]').innerHTML = `<p class="micro-label">${escapeHtml(portfolio.current.label)}</p><p class="current-statement">${escapeHtml(portfolio.current.title)}</p><p class="current-note">${escapeHtml(portfolio.current.copy)}<br><br>${escapeHtml(portfolio.current.detail)}</p>`;
     document.querySelector('[data-current-focus]').innerHTML = portfolio.current.focus.map((item, index) => `<div class="focus-item"><span>0${index + 1}</span><strong>${escapeHtml(item)}</strong><i>↗</i></div>`).join('');
 
     document.querySelector('[data-projects]').innerHTML = portfolio.projects.map((project) => `
@@ -38,7 +34,7 @@ function renderContent() {
     `).join('');
 
     document.querySelector('[data-skills]').innerHTML = Object.entries(portfolio.skills).map(([group, items], index) => `<div class="skill-group reveal"><div class="skill-group-title"><span>0${index + 1}</span><h3>${escapeHtml(group)}</h3></div><div class="skill-tags">${items.map((skill) => `<span>${escapeHtml(skill)}</span>`).join('')}</div></div>`).join('');
-    document.querySelector('[data-coursework]').innerHTML = portfolio.coursework.map((item) => `<span>${escapeHtml(item)}</span>`).join('');
+    document.querySelector('[data-coursework]').innerHTML = portfolio.coursework.map((item) => `<span>${escapeHtml(item.code)} <b>${escapeHtml(item.title)}</b></span>`).join('');
     document.querySelector('[data-awards]').innerHTML = portfolio.awards.map((item, index) => `<article class="award-item"><span>0${index + 1}</span><p>${escapeHtml(item)}</p></article>`).join('');
 }
 
