@@ -33,10 +33,6 @@ function detectWebGL2() {
     return Boolean(context);
 }
 
-window.addEventListener('portfolio:webgl-unavailable', (event) => {
-    showWebGLStatus(event.detail?.reason || 'A 3D graphics context could not be created');
-});
-
 const escapeHtml = (value) => String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')

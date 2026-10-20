@@ -478,7 +478,6 @@ export function createNeuralLab(root) {
         }
     } catch (error) {
         const reason = error && error.message ? error.message : 'the graphics context is unavailable';
-        windowRef?.dispatchEvent(new CustomEvent('portfolio:webgl-unavailable', { detail: { reason } }));
         showFallback(reason);
     }
 
