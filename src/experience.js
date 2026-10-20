@@ -66,7 +66,6 @@ content.innerHTML = `
                 <output data-certificate-zoom-value>${zoomLevels[zoomIndex].label}</output>
                 <button type="button" data-certificate-zoom-in aria-label="Zoom certificate in">+</button>
             </div>
-            <a class="certificate-open-link" href="${escapeHtml(detail.certificate)}" target="_blank" rel="noopener noreferrer">Open certificate in browser ↗</a>
             <p class="certificate-note">This certificate is locked for viewing. The controls below are limited to zooming; comment, draw, download, print, and other editing actions are disabled.</p>
         </aside>
     </div>

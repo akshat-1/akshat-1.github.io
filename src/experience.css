@@ -28,8 +28,6 @@
 .certificate-controls button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); color: var(--cyan); background: transparent; font-family: var(--mono); font-size: 1rem; line-height: 1; cursor: pointer; }
 .certificate-controls button:hover { border-color: rgba(98, 238, 209, .5); background: rgba(98, 238, 209, .08); }
 .certificate-controls output { min-width: 76px; color: var(--faint); font-family: var(--mono); font-size: .58rem; text-align: center; }
-.certificate-open-link { display: inline-block; margin-top: 12px; color: var(--cyan); font-family: var(--mono); font-size: .62rem; }
-.certificate-open-link:hover, .certificate-open-link:focus-visible { color: var(--amber); text-decoration: underline; text-underline-offset: 3px; }
 .certificate-note { margin-top: 12px; color: var(--faint); font-family: var(--mono); font-size: .58rem; line-height: 1.55; }
 @media (max-width: 850px) {
     .detail-layout { grid-template-columns: 1fr; gap: 60px; }
@@ -44,5 +42,4 @@
     .detail-layout { padding-top: 42px; }
     .detail-week { grid-template-columns: 1fr; gap: 8px; }
     .certificate-frame { height: 70vh; }
-    .certificate-open-link { display: flex; align-items: center; justify-content: center; min-height: 40px; margin-top: 12px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 4px; background: rgba(98, 238, 209, .06); }
 }
