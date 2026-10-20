@@ -102,28 +102,38 @@ html[data-theme="light"] .robotics-lab__calculation { color: rgba(24, 48, 76, .7
 
     .robotics-lab__calculation {
         top: auto;
-        right: 28px;
+        right: 16px;
         bottom: clamp(42px, 8vh, 86px);
-        width: calc(100% - 56px);
-        max-width: calc(100% - 56px);
+        width: calc(100% - 32px);
+        max-width: calc(100% - 32px);
         font-size: clamp(0.4rem, 1.55vw, 0.52rem);
         line-height: 1.3;
-        transform: translate3d(-40%, 0, 0);
+        transform: translate3d(0, 0, 0);
         white-space: pre-wrap;
         overflow-wrap: anywhere;
     }
 
     .robotics-lab__calculation.is-visible {
-        transform: translate3d(-40%, 0, 0);
+        transform: translate3d(0, 0, 0);
     }
 }
 
 @media (min-width: 581px) and (max-width: 850px) {
     .robotics-lab__calculation {
-        right: clamp(64px, 12vw, 132px);
+        right: 16px;
         width: min(340px, calc(100% - 64px));
         white-space: pre-wrap;
         overflow-wrap: anywhere;
+        transform: translate3d(0, -50%, 0);
+    }
+
+    .robotics-lab__calculation.is-visible {
+        transform: translate3d(0, -50%, 0);
+    }
+}
+
+@media (min-width: 851px) {
+    .robotics-lab__calculation {
         transform: translate3d(-40%, -50%, 0);
     }
 
