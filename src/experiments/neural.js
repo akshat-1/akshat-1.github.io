@@ -640,10 +640,10 @@ export function createNeuralLab(root) {
             return;
         }
         if (cursorTarget) {
-            stage.rotation.y += ((-0.08 + cursorTarget.x * 0.16) - stage.rotation.y) * 0.035;
-            stage.rotation.x += (cursorTarget.y * 0.1 - stage.rotation.x) * 0.035;
-            stage.position.x += (cursorTarget.x * 0.12 - stage.position.x) * 0.035;
-            stage.position.y += (-cursorTarget.y * 0.07 - stage.position.y) * 0.035;
+            stage.rotation.y += ((-0.08 + cursorTarget.x * 0.36) - stage.rotation.y) * 0.065;
+            stage.rotation.x += (cursorTarget.y * 0.24 - stage.rotation.x) * 0.065;
+            stage.position.x += (cursorTarget.x * 0.26 - stage.position.x) * 0.065;
+            stage.position.y += (-cursorTarget.y * 0.16 - stage.position.y) * 0.065;
         }
         const forward = getForward();
         nodeVisuals.forEach((visual, id) => {
