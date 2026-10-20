@@ -25,9 +25,11 @@ function renderContent() {
     document.querySelector('[data-current-copy]').innerHTML = `<p class="micro-label">${escapeHtml(portfolio.current.label)}</p><p class="current-statement">${escapeHtml(portfolio.current.title)}</p><p class="current-note">${escapeHtml(portfolio.current.copy)}<br><br>${escapeHtml(portfolio.current.detail)}</p>`;
     document.querySelector('[data-current-focus]').innerHTML = portfolio.current.focus.map((item, index) => `<div class="focus-item"><span>0${index + 1}</span><strong>${escapeHtml(item)}</strong><i>↗</i></div>`).join('');
 
-    document.querySelector('[data-projects]').innerHTML = portfolio.projects.map((project) => `
-        <article class="project-card reveal" data-project-scene="${escapeHtml(project.scene)}"><div class="project-card-top"><span>${escapeHtml(project.number)}</span><span>${escapeHtml(project.type)}</span></div><div class="project-card-body"><h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.description)}</p><div class="project-result">${escapeHtml(project.result)}</div><div class="tag-row">${project.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div></div></article>
-    `).join('');
+    document.querySelector('[data-projects]').innerHTML = portfolio.projects.map((project) => {
+        const tagName = project.link ? 'a' : 'article';
+        const linkAttributes = project.link ? `href="${escapeHtml(project.link)}" target="_blank" rel="noreferrer"` : '';
+        return `<${tagName} class="project-card${project.link ? ' project-card-link' : ''} reveal" data-project-scene="${escapeHtml(project.scene)}" ${linkAttributes}><div class="project-card-top"><span>${escapeHtml(project.number)}</span><span>${escapeHtml(project.type)}</span></div><div class="project-card-body"><h3>${escapeHtml(project.title)}</h3><p>${escapeHtml(project.description)}</p><div class="project-result">${escapeHtml(project.result)}</div><div class="tag-row">${project.tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div></div></${tagName}>`;
+    }).join('');
 
     document.querySelector('[data-leadership]').innerHTML = portfolio.leadership.map((item) => `
         <article class="leadership-item reveal"><div class="leadership-marker"><span>${escapeHtml(item.metric)}</span></div><div class="leadership-copy"><p class="item-period">${escapeHtml(item.period)}</p><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.detail)}</p></div></article>
@@ -105,8 +107,9 @@ function makeAmbientScene(root, type) {
     }
 
     const pointer = { x: 0, y: 0 };
+    const interactionArea = root.closest('section') || root.parentElement || root;
     const onPointerMove = (event) => {
-        const rect = root.getBoundingClientRect();
+        const rect = interactionArea.getBoundingClientRect();
         if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
             pointer.x += (0 - pointer.x) * 0.08;
             pointer.y += (0 - pointer.y) * 0.08;
@@ -123,7 +126,7 @@ function makeAmbientScene(root, type) {
     else window.addEventListener('resize', resize, { passive: true });
     resize();
     let active = true; let frameId = 0; const clock = new THREE.Clock();
-    const render = () => { if (!active) return; const elapsed = clock.getElapsedTime(); if (!reduceMotion) { group.rotation.y += 0.0022; group.rotation.x += 0.0005; } group.rotation.y += (pointer.x * 0.1 - group.rotation.y) * 0.008; group.rotation.x += (-pointer.y * 0.07 - group.rotation.x) * 0.008; group.position.x += (pointer.x * 0.075 - group.position.x) * 0.025; group.position.y += (-pointer.y * 0.045 - group.position.y) * 0.025; light.position.x += (2 + pointer.x * 1.5 - light.position.x) * 0.03; light.position.y += (2 - pointer.y * 1.1 - light.position.y) * 0.03; geometries.forEach((mesh, index) => { if (mesh.isMesh) mesh.position.y = mesh.userData.baseY + Math.sin(elapsed * 0.7 + index) * (reduceMotion ? 0 : 0.00035); }); renderer.render(scene, camera); frameId = requestAnimationFrame(render); };
+    const render = () => { if (!active) return; const elapsed = clock.getElapsedTime(); if (!reduceMotion) { group.rotation.y += 0.0022; group.rotation.x += 0.0005; } group.rotation.y += (pointer.x * 0.2 - group.rotation.y) * 0.012; group.rotation.x += (-pointer.y * 0.14 - group.rotation.x) * 0.012; group.position.x += (pointer.x * 0.16 - group.position.x) * 0.035; group.position.y += (-pointer.y * 0.1 - group.position.y) * 0.035; const pointerDistance = Math.min(Math.hypot(pointer.x, pointer.y), 1); const scale = 1 + pointerDistance * 0.025; group.scale.x += (scale - group.scale.x) * 0.03; group.scale.y += (scale - group.scale.y) * 0.03; group.scale.z += (scale - group.scale.z) * 0.03; light.position.x += (2 + pointer.x * 2.2 - light.position.x) * 0.04; light.position.y += (2 - pointer.y * 1.7 - light.position.y) * 0.04; geometries.forEach((mesh, index) => { if (mesh.isMesh) mesh.position.y = mesh.userData.baseY + Math.sin(elapsed * 0.7 + index) * (reduceMotion ? 0 : 0.00035); }); renderer.render(scene, camera); frameId = requestAnimationFrame(render); };
     const visibilityObserver = typeof IntersectionObserver !== 'undefined' ? new IntersectionObserver((entries) => { active = entries[0].isIntersecting; if (active && !frameId) render(); if (!active && frameId) { cancelAnimationFrame(frameId); frameId = 0; } }, { threshold: 0.05 }) : null;
     if (visibilityObserver) visibilityObserver.observe(root);
     render();

@@ -102,7 +102,8 @@ export const portfolio = {
             result: 'Prompt-conditioned image generation',
             description: 'Built an LDM in PyTorch with a UNet noise predictor, VAE latent representation, CLIP text alignment, and cross-attention for controlled generation.',
             tags: ['PyTorch', 'UNet', 'VAE', 'CLIP', 'Hugging Face'],
-            scene: 'diffusion'
+            scene: 'diffusion',
+            link: 'https://github.com/akshat-1/Latent-Diffusion-PyTorch'
         },
         {
             number: '02',
@@ -111,7 +112,8 @@ export const portfolio = {
             result: 'Live rank-and-suit detection',
             description: 'Designed a four-layer CNN with batch normalization and OpenCV camera input; used augmentation, L2 regularization, and dropout to improve generalization.',
             tags: ['CNN', 'OpenCV', 'BatchNorm', 'Regularization'],
-            scene: 'cnn'
+            scene: 'cnn',
+            link: 'https://github.com/akshat-1/Card_classification_CNN'
         },
         {
             number: '03',

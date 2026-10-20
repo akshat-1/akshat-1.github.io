@@ -256,6 +256,7 @@ export function createNeuralLab(root) {
     let lastStepTime = 0;
     let raycaster = null;
     let pointer = null;
+    let cursorTarget = null;
     let pointerDown = null;
     let calculationTimer = 0;
     const nodeVisuals = new Map();
@@ -617,6 +618,7 @@ export function createNeuralLab(root) {
 
         raycaster = new THREE.Raycaster();
         pointer = new THREE.Vector2();
+        cursorTarget = new THREE.Vector2();
     }
 
     const resize = () => {
@@ -636,6 +638,12 @@ export function createNeuralLab(root) {
     const updateVisuals = (time) => {
         if (!renderer || !stage) {
             return;
+        }
+        if (cursorTarget) {
+            stage.rotation.y += ((-0.08 + cursorTarget.x * 0.16) - stage.rotation.y) * 0.035;
+            stage.rotation.x += (cursorTarget.y * 0.1 - stage.rotation.x) * 0.035;
+            stage.position.x += (cursorTarget.x * 0.12 - stage.position.x) * 0.035;
+            stage.position.y += (-cursorTarget.y * 0.07 - stage.position.y) * 0.035;
         }
         const forward = getForward();
         nodeVisuals.forEach((visual, id) => {
@@ -692,6 +700,30 @@ export function createNeuralLab(root) {
         }
         updateVisuals(time);
         renderer.render(scene, camera);
+    };
+
+    const interactionArea = root.closest('section') || root.parentElement || root;
+    const onCursorMove = (event) => {
+        if (!cursorTarget) {
+            return;
+        }
+        const bounds = interactionArea.getBoundingClientRect();
+        if (
+            event.clientX < bounds.left ||
+            event.clientX > bounds.right ||
+            event.clientY < bounds.top ||
+            event.clientY > bounds.bottom
+        ) {
+            cursorTarget.set(0, 0);
+        } else {
+            cursorTarget.set(
+                ((event.clientX - bounds.left) / Math.max(bounds.width, 1)) * 2 - 1,
+                -((event.clientY - bounds.top) / Math.max(bounds.height, 1)) * 2 + 1
+            );
+        }
+        if (state.reducedMotion) {
+            renderScene(lastFrameTime);
+        }
     };
 
     const setPointer = (event) => {
@@ -892,6 +924,9 @@ export function createNeuralLab(root) {
     addListener(canvas, 'pointerup', onPointerUp, { passive: true }, cleanupTasks);
     addListener(canvas, 'pointercancel', onPointerUp, { passive: true }, cleanupTasks);
     addListener(canvas, 'keydown', onKeyDown, undefined, cleanupTasks);
+    if (windowRef) {
+        addListener(windowRef, 'pointermove', onCursorMove, { passive: true }, cleanupTasks);
+    }
 
     if (renderer) {
         if (windowRef && windowRef.ResizeObserver) {
