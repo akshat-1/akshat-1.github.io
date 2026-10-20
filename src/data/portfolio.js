@@ -10,7 +10,7 @@ export const portfolio = {
         email: 'mpakshat@gmail.com',
         academicEmail: 'na22b025@smail.iitm.ac.in',
         github: 'https://github.com/akshat-1',
-        linkedin: 'https://www.linkedin.com/in/akshat-porwal/',
+        linkedin: 'https://www.linkedin.com/in/akshat-porwal-iitm/',
         photo: './assets/profile-placeholder.svg'
     },
     metrics: [
