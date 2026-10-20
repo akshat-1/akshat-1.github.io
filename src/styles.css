@@ -68,7 +68,7 @@ html[data-theme="light"] .mobile-menu { background: rgba(245, 248, 252, .97); bo
 .mobile-menu a:last-child { border: 0; }
 .section-pad { width: min(1240px, calc(100% - 44px)); margin: 0 auto; padding-top: clamp(110px, 13vw, 180px); padding-bottom: clamp(100px, 12vw, 170px); }
 .hero { position: relative; display: flex; align-items: center; min-height: 820px; padding-top: 150px; overflow: hidden; }
-.hero-copy { position: relative; z-index: 1; max-width: 700px; }
+.hero-copy { position: relative; z-index: 1; max-width: 700px; margin-top: clamp(150px, 14vw, 230px); }
 .eyebrow, .micro-label { margin: 0; color: var(--cyan); font-family: var(--mono); font-size: .64rem; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
 .eyebrow-line { display: inline-block; width: 34px; height: 1px; margin: 0 10px 3px 0; background: var(--cyan); }
 h1, h2, h3, p { margin-top: 0; }
@@ -237,6 +237,7 @@ html[data-theme="light"] .contact-section { background: linear-gradient(145deg, 
     .hero-toc a { gap: 9px; padding: 5px 0; font-size: .69rem; }
     .hero-toc a span { width: 19px; font-size: .6rem; }
     .hero { min-height: auto; padding-top: 145px; }
+    .hero-copy { margin-top: 150px; }
     .hero-visual { top: 70px; right: auto; bottom: 0; left: 50%; width: 100vw; min-height: 420px; transform: translateX(-50%); }
     .hero-bottomline { position: relative; bottom: auto; margin-top: 28px; }
     .education-layout, .current-grid, .leadership-layout, .skills-layout, .awards-layout { grid-template-columns: 1fr; gap: 45px; }
@@ -259,7 +260,7 @@ html[data-theme="light"] .contact-section { background: linear-gradient(145deg, 
     .hero-toc a { min-width: 0; align-items: flex-start; line-height: 1.35; }
     .hero-toc a span { flex: 0 0 auto; }
     .hero-toc .micro-label { margin-bottom: 6px; }
-    .hero-copy { padding-top: 112px; }
+    .hero-copy { margin-top: 166px; padding-top: 112px; }
     h1 { font-size: clamp(3.2rem, 17vw, 5.7rem); }
     .hero-meta { display: grid; gap: 8px; margin-top: 45px; }
     .meta-separator { display: none; }

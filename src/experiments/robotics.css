@@ -118,6 +118,20 @@ html[data-theme="light"] .robotics-lab__calculation { color: rgba(24, 48, 76, .7
     }
 }
 
+@media (min-width: 581px) and (max-width: 850px) {
+    .robotics-lab__calculation {
+        right: clamp(64px, 12vw, 132px);
+        width: min(340px, calc(100% - 64px));
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        transform: translate3d(-40%, -50%, 0);
+    }
+
+    .robotics-lab__calculation.is-visible {
+        transform: translate3d(-40%, -50%, 0);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .robotics-lab__calculation {
         transition: none;
