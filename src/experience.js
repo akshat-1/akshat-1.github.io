@@ -25,7 +25,17 @@ const zoomLevels = [
     { label: '200%', scale: 2 }
 ];
 let zoomIndex = 1;
-const certificateUrl = `${detail.certificate}#toolbar=0&navpanes=0&statusbar=0&messages=0&commenting=0&annotation=0&view=FitH`;
+const certificateUrl = detail.certificate;
+const pdfjsSources = [
+    {
+        module: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs',
+        worker: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs'
+    },
+    {
+        module: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.min.mjs',
+        worker: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.min.mjs'
+    }
+];
 const renderContext = detail.context.map((entry) => {
     if (typeof entry === 'string') {
         return `<p>${escapeHtml(entry)}</p>`;
@@ -58,8 +68,8 @@ content.innerHTML = `
         <aside class="certificate-column">
             <div class="certificate-header"><div><p class="micro-label">Document vault</p><h2>${escapeHtml(detail.certificateLabel)}</h2></div><span class="view-only-badge">VIEW ONLY</span></div>
             <div class="certificate-frame" oncontextmenu="return false">
-                <iframe src="${escapeHtml(certificateUrl)}" title="${escapeHtml(detail.certificateLabel)}" loading="eager" tabindex="-1" aria-readonly="true" data-certificate-frame></iframe>
-                <div class="certificate-shield" aria-hidden="true"></div>
+                <canvas class="certificate-canvas" aria-label="${escapeHtml(detail.certificateLabel)}" data-certificate-canvas></canvas>
+                <p class="certificate-status" data-certificate-status>Loading certificate…</p>
             </div>
             <div class="certificate-controls" aria-label="Certificate zoom controls">
                 <button type="button" data-certificate-zoom-out aria-label="Zoom certificate out">−</button>
@@ -71,19 +81,72 @@ content.innerHTML = `
     </div>
 `;
 
-const certificateFrame = content.querySelector('[data-certificate-frame]');
+const certificateFrame = content.querySelector('.certificate-frame');
+const certificateCanvas = content.querySelector('[data-certificate-canvas]');
+const certificateStatus = content.querySelector('[data-certificate-status]');
 const zoomValue = content.querySelector('[data-certificate-zoom-value]');
-const updateCertificateZoom = (direction) => {
-    zoomIndex = Math.max(0, Math.min(zoomLevels.length - 1, zoomIndex + direction));
-    const zoom = zoomLevels[zoomIndex];
-    certificateFrame.style.width = `${zoom.scale * 100}%`;
-    certificateFrame.style.height = `${zoom.scale * 100}%`;
-    certificateFrame.src = certificateUrl;
-    zoomValue.textContent = zoom.label;
+let certificatePage = null;
+let pdfDocument = null;
+
+const renderCertificate = async () => {
+    if (!certificatePage) {
+        return;
+    }
+    const baseViewport = certificatePage.getViewport({ scale: 1 });
+    const fitScale = Math.max((certificateFrame.clientWidth - 2) / baseViewport.width, 0.1);
+    const zoom = zoomLevels[zoomIndex].scale;
+    const viewport = certificatePage.getViewport({ scale: fitScale * zoom });
+    const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    certificateCanvas.width = Math.ceil(viewport.width * devicePixelRatio);
+    certificateCanvas.height = Math.ceil(viewport.height * devicePixelRatio);
+    certificateCanvas.style.width = `${viewport.width}px`;
+    certificateCanvas.style.height = `${viewport.height}px`;
+    await certificatePage.render({
+        canvasContext: certificateCanvas.getContext('2d', { alpha: false }),
+        viewport,
+        transform: devicePixelRatio === 1 ? null : [devicePixelRatio, 0, 0, devicePixelRatio, 0, 0]
+    }).promise;
+    certificateStatus.hidden = true;
 };
 
-content.querySelector('[data-certificate-zoom-out]').addEventListener('click', () => updateCertificateZoom(-1));
-content.querySelector('[data-certificate-zoom-in]').addEventListener('click', () => updateCertificateZoom(1));
+const updateCertificateZoom = async (direction) => {
+    zoomIndex = Math.max(0, Math.min(zoomLevels.length - 1, zoomIndex + direction));
+    const zoom = zoomLevels[zoomIndex];
+    zoomValue.textContent = zoom.label;
+    await renderCertificate();
+};
+
+content.querySelector('[data-certificate-zoom-out]').addEventListener('click', () => { void updateCertificateZoom(-1); });
+content.querySelector('[data-certificate-zoom-in]').addEventListener('click', () => { void updateCertificateZoom(1); });
+
+const loadCertificate = async () => {
+    try {
+        let pdfjs = null;
+        let workerUrl = '';
+        for (const source of pdfjsSources) {
+            try {
+                pdfjs = await import(source.module);
+                workerUrl = source.worker;
+                break;
+            } catch {
+                // Try the second CDN before showing the browser fallback state.
+            }
+        }
+        if (!pdfjs) {
+            throw new Error('PDF renderer could not be loaded');
+        }
+        pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+        pdfDocument = await pdfjs.getDocument(certificateUrl).promise;
+        certificatePage = await pdfDocument.getPage(1);
+        await renderCertificate();
+    } catch (error) {
+        certificateStatus.hidden = false;
+        certificateStatus.textContent = 'Certificate preview unavailable in this browser.';
+    }
+};
+
+void loadCertificate();
+window.addEventListener('resize', () => { void renderCertificate(); }, { passive: true });
 
 document.addEventListener('contextmenu', (event) => {
     if (event.target.closest('.certificate-frame')) event.preventDefault();

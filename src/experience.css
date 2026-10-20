@@ -22,8 +22,9 @@
 .certificate-header h2 { margin: 8px 0 0; color: var(--ink); font-size: 1rem; font-weight: 600; line-height: 1.35; }
 .view-only-badge { flex: 0 0 auto; padding: 6px 8px; border: 1px solid rgba(98, 238, 209, .35); color: var(--cyan); font-family: var(--mono); font-size: .54rem; letter-spacing: .08em; }
 .certificate-frame { position: relative; height: min(650px, 70vh); overflow: auto; border: 1px solid var(--line); background: #151d2b; user-select: none; touch-action: pan-x pan-y; }
-.certificate-frame iframe { display: block; width: 100%; height: 100%; border: 0; background: white; pointer-events: none; }
-.certificate-shield { position: absolute; inset: 0; z-index: 1; background: transparent; pointer-events: none; user-select: none; }
+.certificate-canvas { display: block; max-width: none; background: white; }
+.certificate-status { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 24px; color: var(--faint); background: #fff; font-family: var(--mono); font-size: .65rem; text-align: center; }
+.certificate-status[hidden] { display: none; }
 .certificate-controls { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 .certificate-controls button { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--line); color: var(--cyan); background: transparent; font-family: var(--mono); font-size: 1rem; line-height: 1; cursor: pointer; }
 .certificate-controls button:hover { border-color: rgba(98, 238, 209, .5); background: rgba(98, 238, 209, .08); }
