@@ -74,7 +74,7 @@
     pointer-events: none;
     transform: translate3d(0, -50%, 0);
     transition: opacity 260ms ease, transform 260ms ease;
-    white-space: pre-line;
+    white-space: pre;
 }
 
 .robotics-lab__calculation.is-visible {
@@ -94,10 +94,13 @@
     }
 
     .robotics-lab__calculation {
-        top: 14px;
-        right: 16px;
+        top: auto;
+        right: 12px;
+        bottom: clamp(42px, 8vh, 86px);
         width: calc(100% - 32px);
-        transform: translate3d(3px, -3px, 0);
+        font-size: clamp(0.43rem, 1.7vw, 0.55rem);
+        line-height: 1.3;
+        transform: translate3d(3px, 0, 0);
     }
 
     .robotics-lab__calculation.is-visible {

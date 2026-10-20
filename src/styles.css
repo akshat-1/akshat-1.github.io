@@ -224,7 +224,7 @@ h1 em, h2 em { color: var(--cyan); font-family: Georgia, serif; font-weight: 400
     .header-socials { display: none; }
     .section-pad { width: min(100% - 36px, 1240px); padding-top: 90px; padding-bottom: 90px; }
     .hero { padding-top: 118px; }
-    .hero-toc { position: absolute; top: 86px; right: 18px; left: 18px; width: auto; padding: 10px 0 0; border-top: 1px solid var(--line); border-left: 0; scale: 1.1; }
+    .hero-toc { position: absolute; top: 86px; right: auto; left: 50%; width: calc(100% - 36px); padding: 10px 12px 12px; border-top: 1px solid var(--line); border-left: 0; scale: 1; transform: translateX(-50%); transform-origin: top center; }
     .hero-toc nav { grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 10px; }
     .hero-toc .micro-label { margin-bottom: 6px; }
     .hero-copy { padding-top: 112px; }
