@@ -35,8 +35,8 @@ export const portfolio = {
             bullets: [
                 'Developed a GitHub Actions pipeline with Scan, Triage, Remediation, and Validation agents.',
                 'Automated dependency updates, CI build checks, rollback of failed upgrades, and PR generation.',
-                'Deployed Renovate Bot for Bitbucket repositories using Artifactory and TeamCity.',
-                'Created a Python Maven dependency-tree parser using backtracking and integrated OSV and NVD data for CVEs, severity, fixed versions, and patched versions.',
+                'Deployed Renovate Bot for Bitbucket repositories using an orchestrator UI, Artifactory, and TeamCity.',
+                'Created a Python Maven dependency-tree parser using backtracking and integrated OSV and NVD data for CVE IDs, severity, fixed versions, and patched versions.',
                 'Received a Pre-Placement Offer for delivering scalable automation that streamlined enterprise dependency vulnerability management.'
             ],
             tags: ['GitHub Actions', 'Python', 'OSV / NVD', 'Renovate', 'TeamCity'],
@@ -46,9 +46,9 @@ export const portfolio = {
                 intro: 'At Deutsche India, I worked in the TDI division on automation for identifying, prioritising, validating, and promoting dependency upgrades across enterprise repositories.',
                 context: [
                     'The work started with an induction and environment setup, followed by a focused investigation into how dependency trees expose direct and transitive vulnerabilities. I built Python tooling to parse Maven dependency trees and connect package information with OSV and NVD data.',
-                    'I then explored Renovate Bot and built orchestration around Bitbucket repositories. Candidate fixes were scored by severity, closeness to a fixed version, and practical compatibility before being applied one dependency at a time.',
-                    'The validation loop used TeamCity to build after each change. Successful changes were retained, failed upgrades were reverted to the last working checkpoint, and only buildable sequences were promoted for pull-request creation.',
-                    'In parallel, I developed a GitHub Actions workflow organised as Scan, Triage, Remediation, and Validation agents. This made the process repeatable for push events and scheduled scans while keeping the promotion gate tied to a successful build.'
+                    'I then explored Renovate Bot and built an orchestrator UI around Bitbucket repositories. It triggered scans, parsed the reported vulnerabilities, and scored every fixed version using severity, version distance, and compatibility so the least severe, closest viable fix could be selected.',
+                    'The validation loop used TeamCity to build after each change. The highest-scoring fixed version was applied one dependency at a time; successful changes were retained, failed upgrades were reverted to the last working checkpoint, and only a sequence of successful builds was promoted for pull-request creation.',
+                    'In parallel, I developed a GitHub Actions workflow organised as Scan, Triage, Remediation, and Validation agents. It used Dependabot on push events and scheduled cron scans, sorted findings by CVE and fix score, changed one dependency at a time in files such as pom.xml and package.json, and kept the promotion gate tied to a successful build.'
                 ],
                 workstreams: ['Maven dependency-tree parsing', 'OSV / NVD vulnerability intelligence', 'Renovate and Bitbucket orchestration', 'TeamCity build validation', 'GitHub Actions remediation agents'],
                 certificate: './certificates/deutsche-bank-internship.pdf',
@@ -64,8 +64,8 @@ export const portfolio = {
             summary: 'Explored phishing and initial-access techniques in controlled sandbox environments.',
             bullets: [
                 'Studied recent CVEs and phishing techniques to understand how modern attack chains exploit human and technical trust boundaries.',
-                'Used Gophish and Evilginx in controlled environments to study phishing, credential-harvesting, and multi-factor authentication bypass risks.',
-                'Developed and evaluated sandboxed payload demonstrations with Metasploit, focusing on browser, email, SMS, and social-platform security controls.',
+                'Used Gophish to simulate large-scale phishing through Gmail and SMS, then studied credential-harvesting and multi-factor authentication bypass risks with Evilginx in controlled environments.',
+                'Developed and evaluated sandboxed payload demonstrations with Metasploit for initial access and privilege escalation, testing browser, email, SMS, and social-platform security controls.',
                 'Explored social engineering as a complementary delivery vector and documented weaknesses for defensive analysis.'
             ],
             tags: ['Gophish', 'Evilginx', 'Metasploit', 'Security R&D'],
@@ -75,9 +75,9 @@ export const portfolio = {
                 intro: 'Under Prof. N. S. Narayanaswamy, I worked on malware engineering and mitigation strategies through controlled security research and sandboxed demonstrations.',
                 context: [
                     'The research began with a review of recent vulnerabilities and the mechanics behind emerging attack campaigns. The goal was to understand how technical weaknesses and social manipulation combine in real-world phishing flows.',
-                    'I used Gophish to model controlled phishing scenarios and Evilginx to study the risks around credential interception and multi-factor authentication. All demonstrations were performed in isolated research environments.',
-                    'The later phase explored payload delivery and privilege-escalation demonstrations with Metasploit, testing how browser, email, SMS, and social-media controls respond to different delivery patterns.',
-                    'The work concluded with a study of social engineering as a delivery mechanism and documentation of the defensive gaps observed during the experiments.'
+                    'I used Gophish to model large-scale phishing through Gmail and SMS, and Evilginx to study credential interception and the risks of bypassing two-factor authentication. All demonstrations were performed in isolated research environments.',
+                    'The later phase explored payload delivery for initial access and privilege escalation with Metasploit, testing how browser, email, SMS, and social-media controls respond to different delivery patterns and documenting where existing systems could be vulnerable.',
+                    'The work concluded with a study of social engineering as a delivery mechanism and documentation of the defensive gaps observed across everyday social-media platforms.'
                 ],
                 workstreams: ['CVE and attack-chain research', 'Controlled phishing simulation', 'Credential and MFA risk analysis', 'Sandboxed payload demonstrations', 'Social-engineering threat modelling'],
                 certificate: './certificates/iit-cybersecurity-internship.pdf',
@@ -87,10 +87,10 @@ export const portfolio = {
     ],
     current: {
         label: 'Current dual-degree project',
-        title: 'A diffusion planner for the open water.',
-        copy: 'I am building a Marine Diffusion Planner: a DiT-based architecture for real-world autonomous vessel driving that brings environment modelling and planning into one learnable flow.',
-        detail: 'The project uses real ship AIS data to train an imitation-learning diffusion model of roughly 80M parameters. Its decoder is then fine-tuned with reinforcement learning through a hybrid objective covering collision avoidance, safe distance, vessel uprightness, delayed response, and head-on encounters.',
-        focus: ['Marine Diffusion Planner', 'AIS-data imitation learning', 'Diffusion Transformer · ~80M parameters', 'Hybrid reinforcement-learning loss', 'Collision-aware vessel planning']
+        title: 'Teaching a vessel to plan through uncertainty.',
+        copy: 'I am building a Marine Diffusion Planner for live, real-world autonomous vessel driving. The core idea is a DiT-based architecture that learns the environment and the plan together, instead of treating them as separate pieces stitched together by an external planner and controller.',
+        detail: 'The work studies the limits of today’s model-free reinforcement-learning planners, including discrete Markov-style environment models, accumulated error, and the lack of a real flow of information between the learned environment model and the planner. I use real ship AIS data to train an imitation-learning diffusion model of roughly 80M parameters to predict the next few seconds of a vessel’s path from its current environmental context. The DiT decoder is then fine-tuned with reinforcement learning through a hybrid loss that rewards collision avoidance, safe distance under ocean-governance rules, an upright vessel state, delayed response, and difficult cases such as head-on encounters.',
+        focus: ['Marine Diffusion Planner', 'AIS-data imitation learning', 'DiT · ~80M parameters', 'Joint environment modelling + planning', 'Hybrid RL for safe vessel behaviour']
     },
     projects: [
         {
@@ -144,38 +144,19 @@ export const portfolio = {
     },
     coursework: [
         { code: 'CS1100', title: 'Introduction to Programming' },
-        { code: 'AM1100', title: 'Engineering Mechanics' },
-        { code: 'MA1101', title: 'Functions of Several Variables' },
-        { code: 'OE1101', title: 'Introduction to Naval Architecture & Ocean Engineering' },
-        { code: 'OE1012', title: 'Ship Hydrostatics and Stability' },
-        { code: 'EE1100', title: 'Basic Electrical Engineering' },
-        { code: 'OE2023', title: 'Marine Instrumentation Lab' },
         { code: 'MA2040', title: 'Probability, Statistics and Stochastic Process' },
-        { code: 'OE2013', title: 'Ship Drawing and Calculations' },
-        { code: 'OE2044', title: 'Ship Hydrodynamics' },
-        { code: 'AM2200', title: 'Strength of Materials' },
-        { code: 'OE2024', title: 'Analysis of Structures' },
-        { code: 'MA2010', title: 'Complex Variables' },
-        { code: 'OE2014', title: 'Marine Engineering' },
-        { code: 'OE2054', title: 'Ocean Wave Hydrodynamics' },
-        { code: 'OE2034', title: 'Ship Resistance and Propulsion' },
+        { code: 'OE2023', title: 'Marine Instrumentation Lab' },
         { code: 'OB2202', title: 'Programming, Data Structures and Algorithms using Python' },
-        { code: 'OE3035', title: 'Motion of Ships & Floating Systems' },
-        { code: 'OE3016', title: 'Ship Design' },
-        { code: 'OE3015', title: 'Ship Structural Analysis' },
-        { code: 'OE3045', title: 'Vibration of Marine Structures' },
         { code: 'OB3214', title: 'Deep Learning for Computer Vision' },
         { code: 'ID6040', title: 'Introduction to Robotics' },
+        { code: 'OE3035', title: 'Motion of Ships & Floating Systems' },
         { code: 'OE3036', title: 'Manoeuvring and Control of Marine Vehicles' },
         { code: 'OE5011', title: 'Marine Robotics' },
-        { code: 'OE3046', title: 'Ship Structural Design' },
         { code: 'EE6180', title: 'Advanced Topics in Artificial Intelligence' },
         { code: 'CS6847', title: 'Cloud Computing' },
-        { code: 'OE3190', title: 'Design of Ocean Structures' },
         { code: 'EE6347', title: 'Devices and Technologies for AI and Neuromorphic Computing' },
         { code: 'ED6007', title: 'Mechanics of Robots' },
         { code: 'ED5215', title: 'Introduction to Motion Planning' },
-        { code: 'OE5340', title: 'Ocean Environment Policy & Coastal Zone Management' },
         { code: 'EE6412', title: 'Optimal Control' },
         { code: 'ID5201', title: 'Robotics Seminar' }
     ],

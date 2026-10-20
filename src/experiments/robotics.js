@@ -190,7 +190,7 @@ function createMarkup(documentRef) {
     wrapper.setAttribute('aria-label', 'Interactive 5DOF robotics lab');
     wrapper.innerHTML = `
         <div class="robotics-lab__viewport">
-            <canvas class="robotics-lab__canvas" tabindex="0" aria-label="Three-dimensional 5DOF robot arm. Drag the glowing target to move it." data-role="canvas"></canvas>
+            <canvas class="robotics-lab__canvas" tabindex="0" aria-label="Three-dimensional 5DOF robot arm. Move the cursor over the canvas to guide the end effector." data-role="canvas"></canvas>
             <div class="robotics-lab__fallback" data-role="fallback" hidden>
                 <span class="robotics-lab__fallback-copy" data-role="fallback-copy">WebGL unavailable.</span>
             </div>
@@ -221,8 +221,6 @@ export function createRoboticsLab(root) {
         currentPosition: new THREE.Vector3(),
         error: new THREE.Vector3(),
         paused: false,
-        dragging: false,
-        pointerId: null,
         calculationPending: false,
         reducedMotion: Boolean(windowRef && windowRef.matchMedia && windowRef.matchMedia('(prefers-reduced-motion: reduce)').matches),
         disposed: false
@@ -244,11 +242,14 @@ export function createRoboticsLab(root) {
         ? windowRef.clearTimeout.bind(windowRef)
         : clearTimeout;
 
-    const showCalculation = (lines) => {
+    const showCalculation = (lines, reveal = false) => {
         if (!calculationOverlay) {
             return;
         }
         calculationOverlay.textContent = lines.filter(Boolean).join('\n');
+        if (!reveal) {
+            return;
+        }
         calculationOverlay.classList.add('is-visible');
         if (calculationTimer) {
             clearTimer(calculationTimer);
@@ -288,11 +289,15 @@ export function createRoboticsLab(root) {
         );
         transform.compose(state.currentPosition, orientation, IDENTITY_SCALE);
 
+        showCalculation([
+            `target  = ${formatVector(state.target)} m`,
+            `current = ${formatVector(state.currentPosition)} m`,
+            `error   = ${formatVector(state.error)} m  ‖e‖ = ${formatNumber(state.error.length(), 4)} m`,
+            `q       = ${formatJointVector(state.joints)}`,
+            `J =\n${formatJacobian(jacobian)}`,
+            `T =\n${formatMatrix(transform)}`
+        ], notify || state.calculationPending);
         if (notify || state.calculationPending) {
-            showCalculation([
-                `IK step · ‖e‖ = ${formatNumber(state.error.length(), 4)} m`,
-                `q = ${formatJointVector(state.joints)}`
-            ]);
             state.calculationPending = false;
         }
     };
@@ -324,14 +329,10 @@ export function createRoboticsLab(root) {
         showFallback(reason);
     }
 
-    let targetGroup = null;
-    let targetRing = null;
-    let targetHitArea = null;
     let armLinks = [];
     let armJoints = [];
     let toolGroup = null;
-    let dragPlane = null;
-    let dragOffset = null;
+    let goalPlane = null;
     let raycaster = null;
     let pointer = null;
 
@@ -421,32 +422,9 @@ export function createRoboticsLab(root) {
         toolGroup.add(clawLeft, clawRight);
         stage.add(toolGroup);
 
-        targetGroup = new THREE.Group();
-        targetRing = new THREE.Mesh(
-            new THREE.TorusGeometry(0.19, 0.035, 14, 40),
-            new THREE.MeshStandardMaterial({ color: 0x5de0db, emissive: 0x1a9b9a, emissiveIntensity: 1.2, metalness: 0.28, roughness: 0.2 })
-        );
-        targetRing.castShadow = true;
-        targetGroup.add(targetRing);
-        const targetCore = new THREE.Mesh(
-            new THREE.SphereGeometry(0.035, 16, 12),
-            new THREE.MeshBasicMaterial({ color: 0xc2fffb })
-        );
-        targetGroup.add(targetCore);
-        targetHitArea = new THREE.Mesh(
-            new THREE.SphereGeometry(0.28, 16, 12),
-            new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false })
-        );
-        targetGroup.add(targetHitArea);
-        targetGroup.position.copy(state.target);
-        targetRing.quaternion.setFromUnitVectors(
-            new THREE.Vector3(0, 0, 1),
-            camera.position.clone().sub(targetGroup.position).normalize()
-        );
-        scene.add(targetGroup);
-
-        dragPlane = new THREE.Plane();
-        dragOffset = new THREE.Vector3();
+        const cameraNormal = new THREE.Vector3();
+        camera.getWorldDirection(cameraNormal);
+        goalPlane = new THREE.Plane().setFromNormalAndCoplanarPoint(cameraNormal, state.target);
         raycaster = new THREE.Raycaster();
         pointer = new THREE.Vector2();
     }
@@ -473,51 +451,15 @@ export function createRoboticsLab(root) {
     };
 
     const updateTargetFromPointer = (event) => {
-        if (!renderer || !camera || !dragPlane || event.pointerId !== state.pointerId) {
+        if (!renderer || !camera || !goalPlane) {
             return;
         }
         setPointer(event);
         raycaster.setFromCamera(pointer, camera);
         const hit = new THREE.Vector3();
-        if (raycaster.ray.intersectPlane(dragPlane, hit)) {
-            hit.add(dragOffset);
+        if (raycaster.ray.intersectPlane(goalPlane, hit)) {
             setTargetPosition(hit);
-            targetGroup.position.copy(state.target);
             state.calculationPending = true;
-        }
-    };
-
-    const onPointerDown = (event) => {
-        if (!renderer || !camera || !targetHitArea) {
-            return;
-        }
-        setPointer(event);
-        raycaster.setFromCamera(pointer, camera);
-        const intersections = raycaster.intersectObject(targetHitArea, false);
-        if (!intersections.length) {
-            return;
-        }
-        event.preventDefault();
-        state.dragging = true;
-        state.pointerId = event.pointerId;
-        const cameraNormal = camera.getWorldDirection(new THREE.Vector3()).normalize();
-        dragPlane.setFromNormalAndCoplanarPoint(cameraNormal, targetGroup.position);
-        dragOffset.copy(targetGroup.position).sub(intersections[0].point);
-        canvas.dataset.dragging = 'true';
-        if (canvas.setPointerCapture) {
-            canvas.setPointerCapture(event.pointerId);
-        }
-    };
-
-    const onPointerUp = (event) => {
-        if (event.pointerId !== state.pointerId) {
-            return;
-        }
-        state.dragging = false;
-        state.pointerId = null;
-        canvas.dataset.dragging = 'false';
-        if (canvas.releasePointerCapture && canvas.hasPointerCapture && canvas.hasPointerCapture(event.pointerId)) {
-            canvas.releasePointerCapture(event.pointerId);
         }
     };
 
@@ -526,9 +468,6 @@ export function createRoboticsLab(root) {
         next[axis] += amount;
         setTargetPosition(next);
         state.calculationPending = true;
-        if (targetGroup) {
-            targetGroup.position.copy(state.target);
-        }
     };
 
     const onKeyDown = (event) => {
@@ -562,11 +501,7 @@ export function createRoboticsLab(root) {
         state.joints = INITIAL_JOINTS.slice();
         setTargetPosition(new THREE.Vector3(INITIAL_TARGET.x, INITIAL_TARGET.y, INITIAL_TARGET.z));
         state.paused = false;
-        state.dragging = false;
         state.calculationPending = true;
-        if (targetGroup) {
-            targetGroup.position.copy(state.target);
-        }
         updateReadouts(true);
     };
 
@@ -633,12 +568,6 @@ export function createRoboticsLab(root) {
         armJoints[3].position.copy(end);
         toolGroup.position.copy(end);
         toolGroup.quaternion.setFromEuler(new THREE.Euler(kinematics.pitch, kinematics.yaw, state.joints[4], 'YXZ'));
-        targetGroup.position.copy(state.target);
-        const pulse = state.reducedMotion ? 1 : 1 + Math.sin(time * 0.0034) * 0.055;
-        targetGroup.scale.setScalar(pulse);
-        if (targetRing.material && 'emissiveIntensity' in targetRing.material) {
-            targetRing.material.emissiveIntensity = state.reducedMotion ? 1.2 : 1.2 + Math.sin(time * 0.0034) * 0.24;
-        }
     };
 
     const requestFrame = windowRef && windowRef.requestAnimationFrame
@@ -668,10 +597,7 @@ export function createRoboticsLab(root) {
         animationFrame = requestFrame(frame);
     };
 
-    addListener(canvas, 'pointerdown', onPointerDown, { passive: false }, cleanupTasks);
-    addListener(canvas, 'pointermove', updateTargetFromPointer, { passive: false }, cleanupTasks);
-    addListener(canvas, 'pointerup', onPointerUp, undefined, cleanupTasks);
-    addListener(canvas, 'pointercancel', onPointerUp, undefined, cleanupTasks);
+    addListener(canvas, 'pointermove', updateTargetFromPointer, undefined, cleanupTasks);
     addListener(canvas, 'keydown', onKeyDown, undefined, cleanupTasks);
 
     if (renderer) {

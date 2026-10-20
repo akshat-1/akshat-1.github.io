@@ -19,8 +19,8 @@
 .certificate-header h2 { margin: 8px 0 0; color: var(--ink); font-size: 1rem; font-weight: 600; line-height: 1.35; }
 .view-only-badge { flex: 0 0 auto; padding: 6px 8px; border: 1px solid rgba(98, 238, 209, .35); color: var(--cyan); font-family: var(--mono); font-size: .54rem; letter-spacing: .08em; }
 .certificate-frame { position: relative; height: min(650px, 70vh); overflow: hidden; border: 1px solid var(--line); background: #151d2b; user-select: none; }
-.certificate-frame iframe { display: block; width: 100%; height: 100%; border: 0; background: white; }
-.certificate-shield { position: absolute; right: 0; bottom: 0; left: 0; height: 12px; background: rgba(7, 10, 18, .75); pointer-events: none; }
+.certificate-frame iframe { display: block; width: 100%; height: 100%; border: 0; background: white; pointer-events: none; }
+.certificate-shield { position: absolute; inset: 0; z-index: 1; background: transparent; pointer-events: auto; user-select: none; }
 .certificate-note { margin-top: 12px; color: var(--faint); font-family: var(--mono); font-size: .58rem; line-height: 1.55; }
 @media (max-width: 850px) {
     .detail-layout { grid-template-columns: 1fr; gap: 60px; }

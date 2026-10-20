@@ -11,6 +11,7 @@ const requestedRole = new URLSearchParams(window.location.search).get('role');
 const item = portfolio.experience.find((entry) => entry.slug === requestedRole) || portfolio.experience[0];
 const detail = item.detail;
 const content = document.querySelector('[data-detail-content]');
+const certificateUrl = `${detail.certificate}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&messages=0&commenting=0&annotation=0&view=FitH`;
 
 document.title = `${item.company} — ${item.role} — Akshat Porwal`;
 
@@ -34,10 +35,10 @@ content.innerHTML = `
         <aside class="certificate-column">
             <div class="certificate-header"><div><p class="micro-label">Document vault</p><h2>${escapeHtml(detail.certificateLabel)}</h2></div><span class="view-only-badge">VIEW ONLY</span></div>
             <div class="certificate-frame" oncontextmenu="return false">
-                <iframe src="${escapeHtml(detail.certificate)}#toolbar=0&navpanes=0&scrollbar=0&view=FitH" title="${escapeHtml(detail.certificateLabel)}" loading="lazy"></iframe>
+                <iframe src="${escapeHtml(certificateUrl)}" title="${escapeHtml(detail.certificateLabel)}" loading="lazy" sandbox="allow-same-origin" tabindex="-1" aria-readonly="true"></iframe>
                 <div class="certificate-shield" aria-hidden="true"></div>
             </div>
-            <p class="certificate-note">This certificate is embedded for on-page viewing only. Download and print controls are not provided by this page.</p>
+            <p class="certificate-note">This certificate is displayed in a locked, view-only frame. Comment, draw, download, print, and other editing actions are disabled.</p>
         </aside>
     </div>
 `;
