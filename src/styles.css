@@ -43,6 +43,9 @@ html[data-theme="light"] body::after { opacity: .2; background-image: linear-gra
 a { color: inherit; text-decoration: none; }
 button { font: inherit; }
 .scroll-progress { position: fixed; top: 0; left: 0; z-index: 100; width: 0; height: 2px; background: linear-gradient(90deg, var(--cyan), var(--violet), var(--amber)); box-shadow: 0 0 14px var(--cyan); }
+.webgl-status { position: fixed; top: 82px; right: 22px; z-index: 60; display: flex; align-items: center; gap: 12px; max-width: min(560px, calc(100% - 44px)); padding: 8px 12px; border: 1px solid rgba(255, 201, 107, .42); border-radius: 4px; color: var(--muted); background: rgba(16, 25, 45, .94); box-shadow: 0 10px 30px rgba(0, 0, 0, .2); font-family: var(--mono); font-size: .58rem; line-height: 1.35; backdrop-filter: blur(12px); }
+.webgl-status strong { color: var(--amber); font-size: .6rem; white-space: nowrap; }
+html[data-theme="light"] .webgl-status { background: rgba(255, 255, 255, .95); box-shadow: 0 10px 30px rgba(36, 59, 88, .14); }
 .site-header { position: fixed; top: 0; right: 0; left: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 30px; min-height: 80px; padding: 17px clamp(22px, 5vw, 76px); border-bottom: 1px solid transparent; transition: background .3s ease, border-color .3s ease, backdrop-filter .3s ease; }
 .site-header.is-scrolled { border-color: var(--line); background: rgba(7, 10, 18, .78); backdrop-filter: blur(18px); }
 html[data-theme="light"] .site-header.is-scrolled { background: rgba(245, 248, 252, .86); }
@@ -248,6 +251,8 @@ html[data-theme="light"] .contact-section { background: linear-gradient(145deg, 
 }
 @media (max-width: 620px) {
     .site-header { min-height: 68px; padding: 13px 18px; }
+    .webgl-status { top: 72px; right: 12px; left: 12px; max-width: none; align-items: flex-start; gap: 8px; padding: 8px 10px; font-size: .52rem; }
+    .webgl-status strong { font-size: .54rem; }
     .brand-copy { font-size: .57rem; }
     .header-resume { display: none; }
     .header-socials { display: none; }

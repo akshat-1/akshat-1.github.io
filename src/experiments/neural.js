@@ -469,7 +469,7 @@ export function createNeuralLab(root) {
             antialias: true,
             alpha: true,
             canvas,
-            powerPreference: 'high-performance'
+            powerPreference: 'default'
         });
         renderer.setClearColor(0x000000, 0);
         renderer.setPixelRatio(Math.min(windowRef && windowRef.devicePixelRatio ? windowRef.devicePixelRatio : 1, 2));
@@ -478,6 +478,7 @@ export function createNeuralLab(root) {
         }
     } catch (error) {
         const reason = error && error.message ? error.message : 'the graphics context is unavailable';
+        windowRef?.dispatchEvent(new CustomEvent('portfolio:webgl-unavailable', { detail: { reason } }));
         showFallback(reason);
     }
 

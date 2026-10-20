@@ -316,7 +316,7 @@ export function createRoboticsLab(root) {
             antialias: true,
             alpha: true,
             canvas,
-            powerPreference: 'high-performance'
+            powerPreference: 'default'
         });
         renderer.setClearColor(0x000000, 0);
         renderer.shadowMap.enabled = true;
@@ -326,6 +326,7 @@ export function createRoboticsLab(root) {
         }
     } catch (error) {
         const reason = error && error.message ? error.message : 'the graphics context is unavailable';
+        windowRef?.dispatchEvent(new CustomEvent('portfolio:webgl-unavailable', { detail: { reason } }));
         showFallback(reason);
     }
 

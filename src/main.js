@@ -6,6 +6,37 @@ import { setupThemeToggle } from './theme.js';
 
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+function showWebGLStatus(reason = 'WebGL 2 is unavailable') {
+    const status = document.querySelector('[data-webgl-status]');
+    if (!status) {
+        return;
+    }
+    status.hidden = false;
+    status.dataset.reason = reason;
+}
+
+function detectWebGL2() {
+    const canvas = document.createElement('canvas');
+    let context = null;
+    try {
+        context = canvas.getContext('webgl2', {
+            alpha: true,
+            antialias: false,
+            powerPreference: 'default'
+        });
+    } catch {
+        return false;
+    } finally {
+        const loseContext = context && context.getExtension('WEBGL_lose_context');
+        loseContext?.loseContext();
+    }
+    return Boolean(context);
+}
+
+window.addEventListener('portfolio:webgl-unavailable', (event) => {
+    showWebGLStatus(event.detail?.reason || 'A 3D graphics context could not be created');
+});
+
 const escapeHtml = (value) => String(value)
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
@@ -150,6 +181,10 @@ function setupInteractions() {
 
 function init() {
     renderContent(); setupInteractions(); setupThemeToggle();
+    if (!detectWebGL2()) {
+        showWebGLStatus();
+        return;
+    }
     document.querySelectorAll('[data-ambient-scene]').forEach((root) => makeAmbientScene(root, root.dataset.ambientScene));
     createRoboticsLab(document.querySelector('#robotics-root'));
     createNeuralLab(document.querySelector('#neural-root'));
