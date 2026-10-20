@@ -51,13 +51,14 @@ content.innerHTML = `
             <div class="certificate-header"><div><p class="micro-label">Document vault</p><h2>${escapeHtml(detail.certificateLabel)}</h2></div><span class="view-only-badge">VIEW ONLY</span></div>
             <div class="certificate-frame" oncontextmenu="return false">
                 <iframe src="${escapeHtml(certificateUrl)}" title="${escapeHtml(detail.certificateLabel)}" loading="eager" tabindex="-1" aria-readonly="true" data-certificate-frame></iframe>
+                <div class="certificate-shield" aria-hidden="true"></div>
             </div>
             <div class="certificate-controls" aria-label="Certificate zoom controls">
                 <button type="button" data-certificate-zoom-out aria-label="Zoom certificate out">−</button>
                 <output data-certificate-zoom-value>${zoomLevels[zoomIndex].label}</output>
                 <button type="button" data-certificate-zoom-in aria-label="Zoom certificate in">+</button>
             </div>
-            <p class="certificate-note">This certificate is displayed in a locked, view-only frame. Comment, draw, download, print, and other editing actions are disabled.</p>
+            <p class="certificate-note">This certificate is locked for viewing. The controls below are limited to zooming; comment, draw, download, print, and other editing actions are disabled.</p>
         </aside>
     </div>
 `;
