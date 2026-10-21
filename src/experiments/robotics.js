@@ -448,7 +448,7 @@ export function createRoboticsLab(root) {
         const anchorBounds = anchor.getBoundingClientRect();
         const viewportBounds = viewport.getBoundingClientRect();
         calculationOverlay.classList.add('is-text-anchored');
-        calculationOverlay.style.setProperty('left', `${Math.max(18, anchorBounds.right - viewportBounds.left + 150)}px`, 'important');
+        calculationOverlay.style.setProperty('left', `${Math.max(18, anchorBounds.right - viewportBounds.left + 300)}px`, 'important');
         calculationOverlay.style.setProperty('right', 'auto', 'important');
         const overlayHeight = calculationOverlay.offsetHeight;
         calculationOverlay.style.setProperty(
