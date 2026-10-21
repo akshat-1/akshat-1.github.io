@@ -36,7 +36,7 @@
     <header class="site-header" data-header>
         <a class="brand" href="#top" aria-label="Akshat Porwal home">
             <img class="brand-institute-logo" src="./assets/iitm-logo.png" alt="IIT Madras logo">
-            <img class="brand-profile-photo" src="./assets/profile-photo.png" alt="Akshat Porwal">
+            <img class="brand-profile-photo" src="./assets/profile-photo.png" alt="Akshat Porwal" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false" data-profile-trigger>
             <span class="brand-copy">AKSHAT PORWAL<small>ENGINEERING PORTFOLIO</small></span>
         </a>
         <nav class="desktop-nav" aria-label="Primary navigation">
@@ -48,6 +48,10 @@
         <div class="header-socials" aria-label="Social links">
             <a href="https://github.com/akshat-1" target="_blank" rel="noreferrer">GitHub ↗</a>
             <a href="https://www.linkedin.com/in/akshat-porwal-iitm/" target="_blank" rel="noreferrer">LinkedIn ↗</a>
+        </div>
+        <div class="profile-menu" data-profile-menu role="menu" hidden>
+            <a href="./Akshat_Porwal_Resume.pdf" download role="menuitem">Download resume <span>↓</span></a>
+            <a href="mailto:mpakshat@gmail.com" role="menuitem">Contact me <span>↗</span></a>
         </div>
         <span class="header-view-count" data-view-count tabindex="0" aria-label="Portfolio views" title="We use GoatCounter with GitHub Actions to keep count of site visits. The displayed count is updated every day.">Views / —</span>
         <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to light mode">Light mode</button>

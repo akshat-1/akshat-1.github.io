@@ -431,6 +431,24 @@ export function createRoboticsLab(root) {
         pointer = new THREE.Vector2();
     }
 
+    const positionCalculationFromProjectText = () => {
+        const anchor = wrapper.closest('section')?.querySelector('.current-copy');
+        const viewport = calculationOverlay?.parentElement;
+        if (!anchor || !viewport || !windowRef || windowRef.innerWidth <= 850) {
+            calculationOverlay?.style.removeProperty('left');
+            calculationOverlay?.style.removeProperty('right');
+            calculationOverlay?.style.removeProperty('top');
+            calculationOverlay?.style.removeProperty('transform');
+            return;
+        }
+        const anchorBounds = anchor.getBoundingClientRect();
+        const viewportBounds = viewport.getBoundingClientRect();
+        calculationOverlay.style.left = `${Math.max(18, anchorBounds.right - viewportBounds.left + 22)}px`;
+        calculationOverlay.style.right = 'auto';
+        calculationOverlay.style.top = `${Math.max(18, anchorBounds.bottom - viewportBounds.top + 14)}px`;
+        calculationOverlay.style.transform = 'none';
+    };
+
     const resize = () => {
         if (!renderer || !camera) {
             return;
@@ -442,6 +460,7 @@ export function createRoboticsLab(root) {
         renderer.setSize(width, height, false);
         camera.aspect = width / height;
         camera.updateProjectionMatrix();
+        positionCalculationFromProjectText();
     };
 
     const setPointer = (event) => {
@@ -624,6 +643,7 @@ export function createRoboticsLab(root) {
             addListener(windowRef, 'resize', resize, undefined, cleanupTasks);
         }
         resize();
+        positionCalculationFromProjectText();
         animationFrame = requestFrame(frame);
     }
 

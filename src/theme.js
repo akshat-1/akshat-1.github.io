@@ -40,6 +40,41 @@ export function setupThemeToggle(documentRef = document, windowRef = window) {
     });
 }
 
+export function setupProfileMenu(documentRef = document) {
+    const trigger = documentRef.querySelector('[data-profile-trigger]');
+    const menu = documentRef.querySelector('[data-profile-menu]');
+    if (!trigger || !menu) {
+        return;
+    }
+
+    const setOpen = (open) => {
+        menu.hidden = !open;
+        trigger.setAttribute('aria-expanded', String(open));
+    };
+    const toggle = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setOpen(menu.hidden);
+    };
+
+    trigger.addEventListener('click', toggle);
+    trigger.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            toggle(event);
+        }
+    });
+    documentRef.addEventListener('click', (event) => {
+        if (!menu.hidden && !menu.contains(event.target) && event.target !== trigger) {
+            setOpen(false);
+        }
+    });
+    documentRef.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            setOpen(false);
+        }
+    });
+}
+
 export async function loadViewCount(documentRef = document, windowRef = window) {
     const countElement = documentRef.querySelector('[data-view-count]');
     if (!countElement) {

@@ -54,7 +54,7 @@ html[data-theme="light"] .webgl-status { background: rgba(255, 255, 255, .95); b
 html[data-theme="light"] .site-header.is-scrolled { background: rgba(245, 248, 252, .86); }
 .brand { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
 .brand-institute-logo { width: 28px; height: 28px; object-fit: contain; mix-blend-mode: screen; opacity: .9; }
-.brand-profile-photo { width: 40px; height: 40px; border: 1px solid rgba(98, 238, 209, .5); border-radius: 50%; object-fit: cover; object-position: center; box-shadow: 0 0 24px rgba(98, 238, 209, .14); }
+.brand-profile-photo { width: 40px; height: 40px; padding: 0; border: 1px solid rgba(98, 238, 209, .5); border-radius: 50%; object-fit: cover; object-position: center; box-shadow: 0 0 24px rgba(98, 238, 209, .14); cursor: pointer; }
 .brand-copy { color: var(--ink); font-family: var(--mono); font-size: .65rem; font-weight: 800; letter-spacing: .13em; line-height: 1.2; }
 .brand-copy small { display: block; margin-top: 3px; color: var(--faint); font-size: .48rem; font-weight: 500; letter-spacing: .1em; }
 .desktop-nav { display: flex; align-items: center; gap: clamp(18px, 2.5vw, 38px); margin-left: auto; color: var(--muted); font-family: var(--mono); font-size: .63rem; letter-spacing: .04em; }
@@ -62,6 +62,11 @@ html[data-theme="light"] .site-header.is-scrolled { background: rgba(245, 248, 2
 .desktop-nav a:hover, .header-resume:hover, .header-socials a:hover, .social-links a:hover, .social-links button:hover { color: var(--cyan); }
 .header-socials { display: flex; align-items: center; gap: 14px; color: var(--muted); font-family: var(--mono); font-size: .6rem; }
 .header-view-count { position: relative; color: var(--cyan); font-family: var(--mono); font-size: .58rem; letter-spacing: .04em; white-space: nowrap; cursor: help; }
+.profile-menu { position: absolute; top: calc(100% - 5px); left: 74px; z-index: 75; min-width: 190px; padding: 7px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--panel-solid); box-shadow: 0 16px 35px rgba(0, 0, 0, .28); }
+.profile-menu[hidden] { display: none; }
+.profile-menu a { display: flex; align-items: center; justify-content: space-between; gap: 22px; padding: 9px 10px; color: var(--muted); font-family: var(--mono); font-size: .61rem; }
+.profile-menu a:hover, .profile-menu a:focus-visible { color: var(--cyan); background: rgba(98, 238, 209, .08); }
+.profile-menu a span { color: var(--cyan); }
 .header-view-count::after { position: absolute; top: calc(100% + 10px); right: 0; z-index: 70; width: 245px; padding: 9px 11px; border: 1px solid var(--line-strong); border-radius: 4px; color: var(--muted); background: var(--panel-solid); box-shadow: 0 12px 30px rgba(0, 0, 0, .25); content: "We use GoatCounter with GitHub Actions to keep count of site visits. The displayed count is updated every day."; font-family: var(--sans); font-size: .68rem; letter-spacing: 0; line-height: 1.45; opacity: 0; pointer-events: none; transform: translateY(-4px); transition: opacity .18s ease, transform .18s ease; white-space: normal; }
 .header-view-count:hover::after, .header-view-count:focus-visible::after { opacity: 1; transform: translateY(0); }
 .header-resume { padding: 9px 13px; border: 1px solid var(--line-strong); border-radius: 5px; color: var(--ink); font-family: var(--mono); font-size: .63rem; }
@@ -266,6 +271,7 @@ html[data-theme="light"] .contact-section { background: linear-gradient(145deg, 
     .header-resume { display: none; }
     .header-socials { display: none; }
     .header-view-count { margin-left: auto; font-size: .5rem; }
+    .profile-menu { top: calc(100% - 4px); left: 66px; min-width: 178px; }
     .theme-toggle { width: 34px; height: 34px; padding: 0; font-size: 0; }
     .theme-toggle::before { color: var(--cyan); content: "◐"; font-size: 1rem; }
     .section-pad { width: min(100% - 36px, 1240px); padding-top: 90px; padding-bottom: 90px; }
