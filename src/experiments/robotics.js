@@ -233,6 +233,7 @@ export function createRoboticsLab(root) {
     let resizeObserver = null;
     let lastTime = 0;
     let lastReadoutTime = -Infinity;
+    let lastCalculationPositionTime = -Infinity;
     let calculationTimer = 0;
 
     const setTimer = windowRef && windowRef.setTimeout
@@ -626,6 +627,10 @@ export function createRoboticsLab(root) {
         if (time - lastReadoutTime > 80) {
             lastReadoutTime = time;
             updateReadouts();
+        }
+        if (time - lastCalculationPositionTime > 250) {
+            lastCalculationPositionTime = time;
+            positionCalculationFromProjectText();
         }
         animationFrame = requestFrame(frame);
     };
