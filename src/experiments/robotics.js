@@ -432,9 +432,11 @@ export function createRoboticsLab(root) {
     }
 
     const positionCalculationFromProjectText = () => {
-        const anchor = wrapper.closest('section')?.querySelector('.current-copy');
+        const anchor = wrapper.closest('section')?.querySelector('.current-copy .current-note')
+            || wrapper.closest('section')?.querySelector('.current-copy');
         const viewport = calculationOverlay?.parentElement;
-        if (!anchor || !viewport || !windowRef || windowRef.innerWidth <= 850) {
+        if (!calculationOverlay || !anchor || !viewport || !windowRef || windowRef.innerWidth <= 850) {
+            calculationOverlay?.classList.remove('is-text-anchored');
             calculationOverlay?.style.removeProperty('left');
             calculationOverlay?.style.removeProperty('right');
             calculationOverlay?.style.removeProperty('top');
@@ -443,10 +445,11 @@ export function createRoboticsLab(root) {
         }
         const anchorBounds = anchor.getBoundingClientRect();
         const viewportBounds = viewport.getBoundingClientRect();
-        calculationOverlay.style.left = `${Math.max(18, anchorBounds.right - viewportBounds.left + 22)}px`;
-        calculationOverlay.style.right = 'auto';
-        calculationOverlay.style.top = `${Math.max(18, anchorBounds.bottom - viewportBounds.top + 14)}px`;
-        calculationOverlay.style.transform = 'none';
+        calculationOverlay.classList.add('is-text-anchored');
+        calculationOverlay.style.setProperty('left', `${Math.max(18, anchorBounds.right - viewportBounds.left + 24)}px`, 'important');
+        calculationOverlay.style.setProperty('right', 'auto', 'important');
+        calculationOverlay.style.setProperty('top', `${Math.max(18, anchorBounds.bottom - viewportBounds.top + 16)}px`, 'important');
+        calculationOverlay.style.setProperty('transform', 'none', 'important');
     };
 
     const resize = () => {

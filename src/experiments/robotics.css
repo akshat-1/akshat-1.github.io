@@ -89,6 +89,14 @@ html[data-theme="light"] .robotics-lab__calculation { color: rgba(24, 48, 76, .7
     transform: translate3d(0, -50%, 0);
 }
 
+@media (min-width: 851px) {
+    .robotics-lab__calculation.is-text-anchored,
+    .robotics-lab__calculation.is-text-anchored.is-visible {
+        right: auto !important;
+        transform: none !important;
+    }
+}
+
 @media (max-width: 580px) {
     .robotics-lab__viewport,
     .robotics-lab__fallback {
