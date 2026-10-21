@@ -433,8 +433,9 @@ export function createRoboticsLab(root) {
     }
 
     const positionCalculationFromProjectText = () => {
-        const anchor = wrapper.closest('section')?.querySelector('.current-copy .current-note')
-            || wrapper.closest('section')?.querySelector('.current-copy');
+        const currentSection = root.closest('section');
+        const anchor = currentSection?.querySelector('.current-copy .current-note')
+            || currentSection?.querySelector('.current-copy');
         const viewport = calculationOverlay?.parentElement;
         if (!calculationOverlay || !anchor || !viewport || !windowRef || windowRef.innerWidth <= 850) {
             calculationOverlay?.classList.remove('is-text-anchored');
