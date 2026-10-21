@@ -110,7 +110,7 @@ html[data-theme="light"] .robotics-lab__calculation { color: rgba(24, 48, 76, .7
 
     .robotics-lab__calculation {
         top: auto;
-        right: 4px;
+        right: -96px;
         bottom: clamp(42px, 8vh, 86px);
         width: calc(100% - 20px);
         max-width: calc(100% - 20px);
