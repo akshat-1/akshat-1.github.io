@@ -25,6 +25,10 @@ const response = await fetch(apiUrl, {
 
 if (!response.ok) {
     const body = await response.text();
+    if (response.status === 404) {
+        console.warn(`GoatCounter stats endpoint returned HTTP 404 at ${response.url}; keeping the existing view count.`);
+        process.exit(0);
+    }
     throw new Error(`GoatCounter API failed with HTTP ${response.status} at ${response.url}: ${body.slice(0, 240)}`);
 }
 
