@@ -1,0 +1,487 @@
+.simulation-lab,
+.simulation-lab * {
+    box-sizing: border-box;
+}
+
+.simulation-lab {
+    --simulation-ink: rgba(232, 240, 255, .9);
+    --simulation-muted: rgba(148, 164, 192, .86);
+    --simulation-faint: rgba(89, 105, 131, .95);
+    --simulation-panel: rgba(15, 24, 44, .62);
+    --simulation-input: rgba(7, 10, 18, .38);
+    width: 100%;
+    color: var(--simulation-ink);
+    font-family: var(--sans);
+}
+
+html[data-theme="light"] .simulation-lab {
+    --simulation-ink: rgba(23, 36, 58, .92);
+    --simulation-muted: rgba(83, 102, 129, .9);
+    --simulation-faint: rgba(117, 133, 157, .95);
+    --simulation-panel: rgba(255, 255, 255, .72);
+    --simulation-input: rgba(255, 255, 255, .7);
+}
+
+.simulation-lab__topline {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 50px;
+    margin-bottom: 48px;
+}
+
+.simulation-lab__topline h3 {
+    margin: 14px 0 0;
+    color: var(--simulation-ink);
+    font-size: clamp(2rem, 4vw, 3.8rem);
+    letter-spacing: -.07em;
+    line-height: .98;
+}
+
+.simulation-lab__topline h3 em {
+    color: var(--cyan);
+    font-family: Georgia, serif;
+    font-weight: 400;
+}
+
+.simulation-lab__intro {
+    max-width: 430px;
+    margin: 0 0 5px;
+    color: var(--simulation-muted);
+    font-size: .84rem;
+    line-height: 1.7;
+}
+
+.simulation-lab__workspace {
+    display: grid;
+    grid-template-columns: minmax(300px, .78fr) minmax(0, 1.22fr);
+    gap: 20px;
+    align-items: stretch;
+}
+
+.simulation-lab__panel,
+.simulation-lab__plot-card {
+    border: 1px solid var(--line);
+    background: var(--simulation-panel);
+}
+
+.simulation-lab__panel {
+    min-width: 0;
+    padding: 22px;
+}
+
+.simulation-lab__panel--controls {
+    display: flex;
+    flex-direction: column;
+}
+
+.simulation-lab fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.simulation-lab fieldset:disabled {
+    opacity: .62;
+}
+
+.simulation-lab legend {
+    float: left;
+    width: 100%;
+    margin-bottom: 18px;
+}
+
+.simulation-lab__control-grid,
+.simulation-lab__parameter-grid,
+.simulation-lab__initial-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    clear: both;
+}
+
+.simulation-lab__parameter-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: 13px;
+}
+
+.simulation-lab__initial-grid {
+    margin-top: 13px;
+}
+
+.simulation-lab__field,
+.simulation-lab__plot-axis-grid label {
+    display: grid;
+    gap: 6px;
+    color: var(--simulation-muted);
+    font-family: var(--mono);
+    font-size: .57rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.simulation-lab__field--wide {
+    grid-column: span 2;
+}
+
+.simulation-lab input,
+.simulation-lab select {
+    width: 100%;
+    min-width: 0;
+    min-height: 31px;
+    padding: 6px 8px;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    outline: 0;
+    color: var(--simulation-ink);
+    background: var(--simulation-input);
+    font: .65rem var(--mono);
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.simulation-lab input:focus-visible,
+.simulation-lab select:focus-visible,
+.simulation-lab button:focus-visible {
+    border-color: var(--cyan);
+    outline: 1px solid var(--cyan);
+    outline-offset: 2px;
+}
+
+.simulation-lab input:disabled,
+.simulation-lab select:disabled,
+.simulation-lab button:disabled {
+    cursor: not-allowed;
+}
+
+.simulation-lab__equation {
+    min-height: 32px;
+    margin: 16px 0 0;
+    padding: 9px 10px;
+    border-left: 2px solid var(--cyan);
+    color: var(--cyan);
+    background: rgba(98, 238, 209, .06);
+    font: .6rem/1.5 var(--mono);
+}
+
+.simulation-lab__hint,
+.simulation-lab__canvas-hint {
+    margin: 10px 0 0;
+    color: var(--simulation-faint);
+    font: .58rem/1.5 var(--mono);
+}
+
+.simulation-lab__plots-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 23px 0 10px;
+}
+
+.simulation-lab__plots-heading .simulation-lab__hint {
+    margin: 0;
+    text-align: right;
+}
+
+.simulation-lab__plot-controls {
+    display: grid;
+    gap: 8px;
+}
+
+.simulation-lab__plot-control {
+    padding: 10px;
+    border: 1px solid var(--line);
+    background: rgba(98, 238, 209, .025);
+}
+
+.simulation-lab__plot-control-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: var(--simulation-muted);
+    font: .58rem var(--mono);
+}
+
+.simulation-lab__plot-control-heading label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    text-transform: uppercase;
+}
+
+.simulation-lab__plot-control-heading input {
+    width: 13px;
+    min-height: 13px;
+    accent-color: var(--cyan);
+}
+
+.simulation-lab__plot-control-heading span {
+    max-width: 62%;
+    color: var(--pink);
+    font-size: .53rem;
+    text-align: right;
+    text-transform: none;
+}
+
+.simulation-lab__plot-axis-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+}
+
+.simulation-lab__formula {
+    grid-column: span 1;
+}
+
+.simulation-lab__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.simulation-lab__actions .button {
+    min-height: 38px;
+    padding: 0 11px;
+    gap: 9px;
+    font-size: .58rem;
+}
+
+.simulation-lab__actions .button-danger {
+    border: 1px solid rgba(255, 128, 156, .5);
+    color: var(--pink);
+    background: rgba(255, 128, 156, .07);
+}
+
+.simulation-lab__actions .button-danger:hover:not(:disabled) {
+    border-color: var(--pink);
+    background: rgba(255, 128, 156, .14);
+}
+
+.simulation-lab__lock-status {
+    min-height: 16px;
+    margin: 10px 0 0;
+    color: var(--simulation-faint);
+    font: .58rem/1.45 var(--mono);
+}
+
+.simulation-lab.is-running .simulation-lab__lock-status {
+    color: var(--amber);
+}
+
+.simulation-lab__panel-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.simulation-lab__panel-heading h4 {
+    margin: 6px 0 0;
+    color: var(--simulation-ink);
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.simulation-lab__phase-readout {
+    color: var(--simulation-muted);
+    font: .58rem var(--mono);
+    text-align: right;
+}
+
+.simulation-lab__phase-canvas,
+.simulation-lab__plot-card canvas {
+    display: block;
+    width: 100%;
+    height: 360px;
+    min-height: 260px;
+    border: 1px solid var(--line);
+    background: rgba(7, 10, 18, .12);
+    cursor: crosshair;
+    touch-action: none;
+}
+
+html[data-theme="light"] .simulation-lab__phase-canvas,
+html[data-theme="light"] .simulation-lab__plot-card canvas {
+    background: rgba(255, 255, 255, .3);
+}
+
+.simulation-lab.is-running .simulation-lab__phase-canvas {
+    cursor: not-allowed;
+}
+
+.simulation-lab__status-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    margin-top: 20px;
+    border: 1px solid var(--line);
+}
+
+.simulation-lab__status-grid > div {
+    min-width: 0;
+    padding: 13px 15px;
+    border-right: 1px solid var(--line);
+}
+
+.simulation-lab__status-grid > div:last-child {
+    border-right: 0;
+}
+
+.simulation-lab__status-grid span,
+.simulation-lab__status-grid strong {
+    display: block;
+}
+
+.simulation-lab__status-grid span {
+    margin-bottom: 5px;
+    color: var(--simulation-faint);
+    font: .52rem var(--mono);
+    letter-spacing: .08em;
+}
+
+.simulation-lab__status-grid strong {
+    overflow: hidden;
+    color: var(--cyan);
+    font: .78rem var(--mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.simulation-lab__plot-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.simulation-lab__plot-card {
+    min-width: 0;
+    padding: 14px;
+}
+
+.simulation-lab__plot-card-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 9px;
+}
+
+.simulation-lab__plot-card-heading strong {
+    overflow: hidden;
+    color: var(--simulation-muted);
+    font: .6rem var(--mono);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.simulation-lab__plot-card canvas {
+    height: 220px;
+    min-height: 220px;
+    cursor: default;
+}
+
+.simulation-lab__plot-message {
+    display: grid;
+    place-items: center;
+    height: 220px;
+    min-height: 220px;
+    margin: 0;
+    padding: 20px;
+    border: 1px solid var(--line);
+    color: var(--simulation-faint);
+    font: .6rem/1.5 var(--mono);
+    text-align: center;
+}
+
+.simulation-lab__plot-message[hidden] {
+    display: none;
+}
+
+.simulation-lab__error {
+    margin: 14px 0 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 128, 156, .4);
+    color: var(--pink);
+    background: rgba(255, 128, 156, .06);
+    font: .62rem/1.5 var(--mono);
+}
+
+.simulation-lab__error[hidden] {
+    display: none;
+}
+
+@media (max-width: 980px) {
+    .simulation-lab__workspace,
+    .simulation-lab__plot-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .simulation-lab__plot-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .simulation-lab__topline {
+        display: block;
+        margin-bottom: 30px;
+    }
+
+    .simulation-lab__intro {
+        margin-top: 18px;
+    }
+
+    .simulation-lab__panel {
+        padding: 15px;
+    }
+
+    .simulation-lab__control-grid,
+    .simulation-lab__parameter-grid,
+    .simulation-lab__initial-grid,
+    .simulation-lab__plot-axis-grid,
+    .simulation-lab__plot-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .simulation-lab__field--wide,
+    .simulation-lab__formula {
+        grid-column: auto;
+    }
+
+    .simulation-lab__plots-heading {
+        display: block;
+    }
+
+    .simulation-lab__plots-heading .simulation-lab__hint {
+        margin-top: 8px;
+        text-align: left;
+    }
+
+    .simulation-lab__status-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .simulation-lab__status-grid > div:nth-child(2n) {
+        border-right: 0;
+    }
+
+    .simulation-lab__status-grid > div:last-child {
+        grid-column: span 2;
+    }
+
+    .simulation-lab__phase-canvas {
+        height: 300px;
+        min-height: 300px;
+    }
+
+    .simulation-lab__phase-readout {
+        max-width: 46%;
+        line-height: 1.45;
+    }
+}

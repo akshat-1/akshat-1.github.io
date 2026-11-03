@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "npm run build && node scripts/smoke-test.mjs"
+    "test": "npm run build && node scripts/smoke-test.mjs && node scripts/simulation-test.mjs"
   },
   "dependencies": {
     "three": "0.169.0"

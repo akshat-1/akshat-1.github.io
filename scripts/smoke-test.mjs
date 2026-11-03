@@ -19,13 +19,17 @@ const runtimeSource = [
     'src/main.js',
     'src/data/portfolio.js',
     'src/experiments/robotics.js',
-    'src/experiments/neural.js'
+    'src/experiments/neural.js',
+    'src/experiments/simulation.js',
+    'src/experiments/simulation-core.js'
 ].map((file) => readFileSync(join(root, file), 'utf8')).join('\n');
 const siteSource = `${html}\n${experienceHtml}\n${runtimeSource}`;
 const requiredMarkers = [
     'Akshat Porwal',
     'createRoboticsLab',
     'createNeuralLab',
+    'createSimulationLab',
+    'compileFormula',
     'professional experience',
     'selected work',
     'positions of responsibility',
@@ -53,7 +57,7 @@ for (const certificate of ['certificates/deutsche-bank-internship.pdf', 'certifi
 }
 
 const sourceIndex = readFileSync(join(root, 'index.html'), 'utf8');
-for (const marker of ['./src/styles.css', './src/experiments/robotics.css', './src/experiments/neural.css', './vendor/three.module.js']) {
+for (const marker of ['./src/styles.css', './src/experiments/robotics.css', './src/experiments/neural.css', './src/experiments/simulation.css', './vendor/three.module.js']) {
     if (!sourceIndex.includes(marker)) {
         throw new Error(`Branch-root fallback is missing ${marker}.`);
     }
